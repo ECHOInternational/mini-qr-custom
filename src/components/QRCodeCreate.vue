@@ -63,10 +63,13 @@ watch(
   { immediate: true }
 )
 const image = ref()
-const width = ref()
-const height = ref()
+const size = ref() // Unified width/height since QR codes should always be square
 const margin = ref()
 const imageMargin = ref()
+
+// Computed properties for width and height - both derive from unified size
+const width = computed(() => size.value)
+const height = computed(() => size.value)
 
 watch(
   () => props.initialData,
@@ -143,6 +146,14 @@ const qrCodeProps = computed<StyledQRCodeProps>(() => ({
   qrOptions: qrOptions.value
 }))
 
+function setScreenSize() {
+  size.value = SCREEN_SIZE
+}
+
+function setPrintSize() {
+  size.value = PRINT_SIZE
+}
+
 function uploadImage() {
   console.debug('Uploading image')
   const imageInput = document.createElement('input')
@@ -164,6 +175,10 @@ function uploadImage() {
   imageInput.click()
 }
 // #endregion
+
+// Size presets
+const SCREEN_SIZE = 200
+const PRINT_SIZE = 1000
 
 //#region /* Brand colors configuration */
 const brandColors = [
@@ -223,8 +238,7 @@ watch(
     isInitialPresetLoad.value = false
 
     image.value = selectedPreset.value.image
-    width.value = selectedPreset.value.width
-    height.value = selectedPreset.value.height
+    size.value = selectedPreset.value.width // Use width as the size since QR codes are square
     margin.value = selectedPreset.value.margin
     imageMargin.value = selectedPreset.value.imageOptions.margin
     // Set unified foreground color (use dots color from preset)
@@ -272,8 +286,7 @@ function refreshCurrentPreset() {
 
     // Don't update data to preserve user input
     image.value = currentPreset.image
-    width.value = currentPreset.width
-    height.value = currentPreset.height
+    size.value = currentPreset.width // Use width as the size since QR codes are square
     margin.value = currentPreset.margin
     imageMargin.value = currentPreset.imageOptions.margin
     // Set unified foreground color (use dots color from preset)
@@ -1209,31 +1222,37 @@ const mainDivPaddingStyle = computed(() => {
               </div>
             </div>
             <div class="flex w-full flex-col gap-4 sm:flex-row sm:gap-8">
-              <div class="w-full sm:w-1/3">
-                <label for="width">
-                  {{ t('Width (px)') }}
+              <div class="w-full sm:w-1/2">
+                <label for="size">
+                  {{ t('Size (px)') }}
                 </label>
-                <input
-                  class="text-input"
-                  id="width"
-                  type="number"
-                  placeholder="width in pixels"
-                  v-model="width"
-                />
+                <div class="flex flex-col gap-2">
+                  <input
+                    class="text-input"
+                    id="size"
+                    type="number"
+                    placeholder="size in pixels"
+                    v-model="size"
+                  />
+                  <div class="flex gap-2">
+                    <button
+                      @click="setScreenSize"
+                      class="secondary-button flex-1 text-sm"
+                      :title="t('Optimized for screen display')"
+                    >
+                      {{ t('Screen') }} ({{ SCREEN_SIZE }}px)
+                    </button>
+                    <button
+                      @click="setPrintSize"
+                      class="secondary-button flex-1 text-sm"
+                      :title="t('Optimized for print quality')"
+                    >
+                      {{ t('Print') }} ({{ PRINT_SIZE }}px)
+                    </button>
+                  </div>
+                </div>
               </div>
-              <div class="w-full sm:w-1/3">
-                <label for="height">
-                  {{ t('Height (px)') }}
-                </label>
-                <input
-                  class="text-input"
-                  id="height"
-                  type="number"
-                  placeholder="height in pixels"
-                  v-model="height"
-                />
-              </div>
-              <div class="w-full sm:w-1/3">
+              <div class="w-full sm:w-1/2">
                 <label for="border-radius">
                   {{ t('Border radius (px)') }}
                 </label>
