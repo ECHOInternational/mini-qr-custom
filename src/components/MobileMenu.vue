@@ -16,13 +16,7 @@ import {
 } from '@/components/ui/dialog'
 import { X } from 'lucide-vue-next'
 
-defineProps<{
-  isDarkMode: boolean
-  isDarkModePreferenceSetBySystem: boolean
-}>()
-
 const emit = defineEmits<{
-  (e: 'toggle-dark-mode'): void
   (e: 'close'): void
 }>()
 
@@ -182,60 +176,6 @@ onUnmounted(() => {
           </svg>
           <span>GitHub</span>
         </a>
-
-        <!-- Dark mode toggle -->
-        <button
-          class="flex items-center gap-2 rounded-md px-2 py-1.5 text-zinc-800 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-700"
-          @click="emit('toggle-dark-mode')"
-          :aria-label="t('Toggle dark mode')"
-        >
-          <span v-if="isDarkModePreferenceSetBySystem">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
-              <g fill="currentColor">
-                <path d="M12 16a4 4 0 0 0 0-8z" />
-                <path
-                  fill-rule="evenodd"
-                  d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10s10-4.477 10-10S17.523 2 12 2m0 2v4a4 4 0 1 0 0 8v4a8 8 0 1 0 0-16"
-                  clip-rule="evenodd"
-                />
-              </g>
-            </svg>
-          </span>
-          <span v-else-if="isDarkMode">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
-              />
-            </svg>
-          </span>
-          <span v-else>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              stroke-width="2"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
-              />
-            </svg>
-          </span>
-          <span>{{ t('Toggle dark mode') }}</span>
-        </button>
 
         <!-- Language selector -->
         <div class="px-2 py-1.5">

@@ -54,7 +54,9 @@ onMounted(() => {
     }
   }
 
-  // If no match found, keep the default locale (usually 'en')
+  // Always default to English if no match found
+  locale.value = 'en'
+  localStorage.setItem(STORAGE_KEY, 'en')
 })
 </script>
 
