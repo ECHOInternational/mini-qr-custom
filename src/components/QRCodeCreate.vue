@@ -258,7 +258,6 @@ const PRINT_SIZE = 1000
 
 //#region /* Brand colors configuration */
 const brandColors = [
-  { name: t('No Background'), color: 'transparent' },
   { name: 'Desaturated Emerald', color: '#006F5E' },
   { name: 'Ivory White', color: '#EFE6D1' },
   { name: 'Warm Sandstone', color: '#9DA441' },
@@ -1315,6 +1314,39 @@ const mainDivPaddingStyle = computed(() => {
               <div class="flex flex-col gap-2">
                 <label>{{ t('Background color') }}</label>
                 <div class="flex flex-row items-center gap-2">
+                  <!-- No Background button (separate from brand colors) -->
+                  <button
+                    @click="selectBackgroundColor('transparent')"
+                    :title="t('No Background')"
+                    class="relative size-6 cursor-pointer rounded border border-gray-300 transition-transform hover:scale-110"
+                    :class="{
+                      'ring-2 ring-blue-500': !includeBackground
+                    }"
+                    :style="{
+                      backgroundColor: '#f9fafb',
+                      backgroundImage:
+                        'linear-gradient(45deg, #9ca3af 25%, transparent 25%), linear-gradient(-45deg, #9ca3af 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #9ca3af 75%), linear-gradient(-45deg, transparent 75%, #9ca3af 75%)',
+                      backgroundSize: '8px 8px',
+                      backgroundPosition: '0 0, 0 4px, 4px -4px, -4px 0px'
+                    }"
+                  >
+                    <svg class="absolute inset-0 m-auto size-4" viewBox="0 0 24 24" fill="none">
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="9"
+                        :stroke="foregroundColor || '#000000'"
+                        stroke-width="3"
+                        fill="transparent"
+                      />
+                      <path
+                        d="M5.64 5.64l12.72 12.72"
+                        :stroke="foregroundColor || '#000000'"
+                        stroke-width="3"
+                        stroke-linecap="round"
+                      />
+                    </svg>
+                  </button>
                   <!-- Brand color presets -->
                   <div class="flex gap-1">
                     <button
@@ -1322,51 +1354,14 @@ const mainDivPaddingStyle = computed(() => {
                       :key="brandColor.color"
                       @click="selectBackgroundColor(brandColor.color)"
                       :title="brandColor.name"
-                      :style="{
-                        backgroundColor:
-                          brandColor.color === 'transparent' ? '#f9fafb' : brandColor.color,
-                        backgroundImage:
-                          brandColor.color === 'transparent'
-                            ? 'linear-gradient(45deg, #9ca3af 25%, transparent 25%), linear-gradient(-45deg, #9ca3af 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #9ca3af 75%), linear-gradient(-45deg, transparent 75%, #9ca3af 75%)'
-                            : 'none',
-                        backgroundSize: brandColor.color === 'transparent' ? '8px 8px' : 'auto',
-                        backgroundPosition:
-                          brandColor.color === 'transparent'
-                            ? '0 0, 0 4px, 4px -4px, -4px 0px'
-                            : 'auto'
-                      }"
-                      class="relative size-6 cursor-pointer rounded border border-gray-300 transition-transform hover:scale-110"
+                      :style="{ backgroundColor: brandColor.color }"
+                      class="size-6 cursor-pointer rounded border border-gray-300 transition-transform hover:scale-110"
                       :class="{
                         'ring-2 ring-blue-500':
-                          (brandColor.color === 'transparent' && !includeBackground) ||
-                          (brandColor.color !== 'transparent' &&
-                            styleBackground === brandColor.color &&
-                            includeBackground),
+                          styleBackground === brandColor.color && includeBackground,
                         'border-gray-400': brandColor.color === '#FFFFFF'
                       }"
-                    >
-                      <svg
-                        v-if="brandColor.color === 'transparent'"
-                        class="absolute inset-0 m-auto size-4"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                      >
-                        <circle
-                          cx="12"
-                          cy="12"
-                          r="9"
-                          :stroke="foregroundColor || '#000000'"
-                          stroke-width="3"
-                          fill="transparent"
-                        />
-                        <path
-                          d="M5.64 5.64l12.72 12.72"
-                          :stroke="foregroundColor || '#000000'"
-                          stroke-width="3"
-                          stroke-linecap="round"
-                        />
-                      </svg>
-                    </button>
+                    />
                   </div>
                   <!-- Native color picker -->
                   <input
