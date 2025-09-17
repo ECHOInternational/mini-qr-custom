@@ -161,59 +161,6 @@ function uploadImage() {
 }
 // #endregion
 
-// #region /* Preset settings */
-const isPresetSelectOpen = ref(false)
-const allPresetOptions = computed(() => {
-  return allQrCodePresets.map((preset) => ({ value: preset.name, label: t(preset.name) }))
-})
-const selectedPreset = ref<
-  Preset & { key?: string; qrOptions?: { errorCorrectionLevel: ErrorCorrectionLevel } }
->(defaultPreset)
-watch(selectedPreset, () => {
-  // Only update data from preset if there's no initialData or if data is empty
-  if (!props.initialData || data.value === '') {
-    data.value = selectedPreset.value.data
-  }
-
-  image.value = selectedPreset.value.image
-  width.value = selectedPreset.value.width
-  height.value = selectedPreset.value.height
-  margin.value = selectedPreset.value.margin
-  imageMargin.value = selectedPreset.value.imageOptions.margin
-  dotsOptionsColor.value = selectedPreset.value.dotsOptions.color
-  dotsOptionsType.value = selectedPreset.value.dotsOptions.type
-  cornersSquareOptionsColor.value = selectedPreset.value.cornersSquareOptions.color
-  cornersSquareOptionsType.value = selectedPreset.value.cornersSquareOptions.type
-  cornersDotOptionsColor.value = selectedPreset.value.cornersDotOptions.color
-  cornersDotOptionsType.value = selectedPreset.value.cornersDotOptions.type
-  styleBorderRadius.value = getNumericCSSValue(selectedPreset.value.style.borderRadius as string)
-  styleBackground.value = selectedPreset.value.style.background
-  // Update lastBackground when loading a preset with non-transparent background
-  if (selectedPreset.value.style.background !== 'transparent') {
-    lastBackground.value = selectedPreset.value.style.background
-  }
-  includeBackground.value = selectedPreset.value.style.background !== 'transparent'
-  errorCorrectionLevel.value =
-    selectedPreset.value.qrOptions && selectedPreset.value.qrOptions.errorCorrectionLevel
-      ? selectedPreset.value.qrOptions.errorCorrectionLevel
-      : 'Q'
-})
-
-const selectedPresetKey = ref<string>(defaultPreset.name)
-watch(
-  selectedPresetKey,
-  (newKey, prevKey) => {
-    if (newKey === prevKey || !newKey) return
-
-    const updatedPreset = allQrCodePresets.find((preset) => preset.name === newKey)
-    if (updatedPreset) {
-      selectedPreset.value = updatedPreset
-    }
-  },
-  { immediate: true }
-)
-//#endregion
-
 //#region /* Error correction level */
 const errorCorrectionLevels: ErrorCorrectionLevel[] = ['L', 'M', 'Q', 'H']
 const errorCorrectionLevel = ref<ErrorCorrectionLevel>('Q')
@@ -235,6 +182,63 @@ const recommendedErrorCorrectionLevel = computed<ErrorCorrectionLevel | null>(()
     return 'L'
   }
 })
+//#endregion
+
+// #region /* Preset settings */
+const isPresetSelectOpen = ref(false)
+const allPresetOptions = computed(() => {
+  return allQrCodePresets.map((preset) => ({ value: preset.name, label: t(preset.name) }))
+})
+const selectedPreset = ref<
+  Preset & { key?: string; qrOptions?: { errorCorrectionLevel: ErrorCorrectionLevel } }
+>(defaultPreset)
+watch(
+  selectedPreset,
+  () => {
+    // Only update data from preset if there's no initialData or if data is empty
+    if (!props.initialData || data.value === '') {
+      data.value = selectedPreset.value.data
+    }
+
+    image.value = selectedPreset.value.image
+    width.value = selectedPreset.value.width
+    height.value = selectedPreset.value.height
+    margin.value = selectedPreset.value.margin
+    imageMargin.value = selectedPreset.value.imageOptions.margin
+    dotsOptionsColor.value = selectedPreset.value.dotsOptions.color
+    dotsOptionsType.value = selectedPreset.value.dotsOptions.type
+    cornersSquareOptionsColor.value = selectedPreset.value.cornersSquareOptions.color
+    cornersSquareOptionsType.value = selectedPreset.value.cornersSquareOptions.type
+    cornersDotOptionsColor.value = selectedPreset.value.cornersDotOptions.color
+    cornersDotOptionsType.value = selectedPreset.value.cornersDotOptions.type
+    styleBorderRadius.value = getNumericCSSValue(selectedPreset.value.style.borderRadius as string)
+    styleBackground.value = selectedPreset.value.style.background
+    // Update lastBackground when loading a preset with non-transparent background
+    if (selectedPreset.value.style.background !== 'transparent') {
+      lastBackground.value = selectedPreset.value.style.background
+    }
+    includeBackground.value = selectedPreset.value.style.background !== 'transparent'
+    errorCorrectionLevel.value =
+      selectedPreset.value.qrOptions && selectedPreset.value.qrOptions.errorCorrectionLevel
+        ? selectedPreset.value.qrOptions.errorCorrectionLevel
+        : 'Q'
+  },
+  { immediate: true }
+)
+
+const selectedPresetKey = ref<string>(defaultPreset.name)
+watch(
+  selectedPresetKey,
+  (newKey, prevKey) => {
+    if (newKey === prevKey || !newKey) return
+
+    const updatedPreset = allQrCodePresets.find((preset) => preset.name === newKey)
+    if (updatedPreset) {
+      selectedPreset.value = updatedPreset
+    }
+  },
+  { immediate: true }
+)
 //#endregion
 
 //#region /* General Export - download qr code and copy to clipboard */
