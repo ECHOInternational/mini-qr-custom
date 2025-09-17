@@ -62,7 +62,6 @@ const size = ref(SCREEN_SIZE) // Unified width/height since QR codes should alwa
 const isSizeEditing = ref(false) // Track if user is editing size directly
 const isBorderRadiusEditing = ref(false) // Track if user is editing border radius directly
 const isImageMarginEditing = ref(false) // Track if user is editing image margin directly
-const margin = ref()
 const imageMargin = ref()
 
 // Computed properties for width and height - both derive from unified size
@@ -130,6 +129,12 @@ const imageOptions = computed(() => ({
 const qrOptions = computed(() => ({
   errorCorrectionLevel: errorCorrectionLevel.value
 }))
+
+// Automatic margin based on background color
+// 0 margin when no background (transparent), 1 margin when background is present
+const margin = computed(() => {
+  return includeBackground.value ? 1 : 0
+})
 
 const qrCodeProps = computed<StyledQRCodeProps>(() => ({
   data: debouncedData.value || 'Have a beautiful day!',
@@ -337,7 +342,6 @@ watch(
 
     image.value = selectedPreset.value.image
     size.value = selectedPreset.value.width // Use width as the size since QR codes are square
-    margin.value = selectedPreset.value.margin
     imageMargin.value = selectedPreset.value.imageOptions.margin
     // Set unified foreground color (use dots color from preset)
     foregroundColor.value = selectedPreset.value.dotsOptions.color
@@ -385,7 +389,6 @@ function refreshCurrentPreset() {
     // Don't update data to preserve user input
     image.value = currentPreset.image
     size.value = currentPreset.width // Use width as the size since QR codes are square
-    margin.value = currentPreset.margin
     imageMargin.value = currentPreset.imageOptions.margin
     // Set unified foreground color (use dots color from preset)
     foregroundColor.value = currentPreset.dotsOptions.color
@@ -846,12 +849,6 @@ const mainDivPaddingStyle = computed(() => {
       class="flex w-full grow flex-col items-start gap-8 overflow-hidden text-start"
     >
       <div class="flex w-full flex-col gap-4">
-        <h2
-          id="qr-code-settings-title"
-          class="text-2xl font-semibold text-gray-700 dark:text-gray-100"
-        >
-          {{ t('QR code settings') }}
-        </h2>
         <div class="px-2 pb-8 pt-4">
           <section class="space-y-8" aria-labelledby="qr-code-settings-title">
             <div>
@@ -889,6 +886,8 @@ const mainDivPaddingStyle = computed(() => {
                 </button>
               </div>
             </div>
+            <!-- Visual separator -->
+            <div class="border-t border-gray-200 dark:border-gray-700"></div>
             <div class="w-full overflow-hidden">
               <div class="flex w-full flex-col flex-wrap gap-4 sm:flex-row sm:gap-x-8">
                 <!-- Data to encode area -->
@@ -933,6 +932,8 @@ const mainDivPaddingStyle = computed(() => {
                 </div>
               </div>
             </div>
+            <!-- Visual separator -->
+            <div class="border-t border-gray-200 dark:border-gray-700"></div>
             <div class="w-full">
               <div class="mb-2 flex flex-row items-center gap-2">
                 <label> {{ t('Image') }}: </label>
@@ -1017,6 +1018,8 @@ const mainDivPaddingStyle = computed(() => {
                 </div>
               </div>
             </div>
+            <!-- Visual separator -->
+            <div class="border-t border-gray-200 dark:border-gray-700"></div>
             <div id="color-settings" :class="'flex w-full flex-row flex-wrap gap-8'">
               <div class="flex flex-col gap-2">
                 <label>{{ t('Background color') }}:</label>
@@ -1218,18 +1221,6 @@ const mainDivPaddingStyle = computed(() => {
                     </div>
                   </div>
                 </div>
-              </div>
-            </div>
-            <div class="flex w-full flex-col gap-4 sm:flex-row sm:gap-8">
-              <div class="w-full sm:w-1/2">
-                <label for="margin"> {{ t('Margin (px)') }}: </label>
-                <input
-                  class="text-input"
-                  id="margin"
-                  type="number"
-                  placeholder="0"
-                  v-model="margin"
-                />
               </div>
             </div>
             <div
