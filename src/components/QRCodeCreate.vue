@@ -260,6 +260,43 @@ watch(
   },
   { immediate: true }
 )
+
+/**
+ * Refreshes the current preset by reapplying its default values
+ */
+function refreshCurrentPreset() {
+  // Find the current preset in allQrCodePresets to get the original values
+  const currentPreset = allQrCodePresets.find((preset) => preset.name === selectedPresetKey.value)
+  if (currentPreset) {
+    console.log('Refreshing preset:', currentPreset.name)
+
+    // Don't update data to preserve user input
+    image.value = currentPreset.image
+    width.value = currentPreset.width
+    height.value = currentPreset.height
+    margin.value = currentPreset.margin
+    imageMargin.value = currentPreset.imageOptions.margin
+    // Set unified foreground color (use dots color from preset)
+    foregroundColor.value = currentPreset.dotsOptions.color
+    dotsOptionsType.value = currentPreset.dotsOptions.type
+    cornersSquareOptionsType.value = currentPreset.cornersSquareOptions.type
+    cornersDotOptionsType.value = currentPreset.cornersDotOptions.type
+    styleBorderRadius.value = getNumericCSSValue(currentPreset.style.borderRadius as string)
+    styleBackground.value = currentPreset.style.background
+    // Update lastBackground when loading a preset with non-transparent background
+    if (currentPreset.style.background !== 'transparent') {
+      lastBackground.value = currentPreset.style.background
+    }
+    includeBackground.value = currentPreset.style.background !== 'transparent'
+    errorCorrectionLevel.value =
+      currentPreset.qrOptions && currentPreset.qrOptions.errorCorrectionLevel
+        ? currentPreset.qrOptions.errorCorrectionLevel
+        : 'Q'
+
+    // Update the selectedPreset ref to keep it in sync
+    selectedPreset.value = currentPreset
+  }
+}
 //#endregion
 
 //#region /* General Export - download qr code and copy to clipboard */
@@ -852,6 +889,29 @@ const mainDivPaddingStyle = computed(() => {
                   :button-label="t('Select QR code preset')"
                   :insert-divider-at-indexes="[0, 2]"
                 />
+                <button
+                  @click="refreshCurrentPreset"
+                  class="secondary-button flex items-center justify-center p-2"
+                  :title="t('Reset to preset defaults')"
+                  :aria-label="t('Reset to preset defaults')"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+                    <path d="M21 3v5h-5" />
+                    <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+                    <path d="M3 21v-5h5" />
+                  </svg>
+                </button>
               </div>
             </div>
             <div class="w-full overflow-hidden">
