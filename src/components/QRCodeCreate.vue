@@ -61,6 +61,7 @@ const image = ref()
 const size = ref(SCREEN_SIZE) // Unified width/height since QR codes should always be square, default to screen size
 const isSizeEditing = ref(false) // Track if user is editing size directly
 const isBorderRadiusEditing = ref(false) // Track if user is editing border radius directly
+const isImageMarginEditing = ref(false) // Track if user is editing image margin directly
 const margin = ref()
 const imageMargin = ref()
 
@@ -200,6 +201,32 @@ function finishBorderRadiusEditing() {
 function handleBorderRadiusKeydown(event: KeyboardEvent) {
   if (event.key === 'Enter' || event.key === 'Escape') {
     finishBorderRadiusEditing()
+    ;(event.target as HTMLInputElement).blur()
+  }
+}
+
+function startImageMarginEditing() {
+  isImageMarginEditing.value = true
+  nextTick(() => {
+    const input = document.querySelector('#image-margin-input') as HTMLInputElement
+    if (input) {
+      input.focus()
+      input.select()
+    }
+  })
+}
+
+function finishImageMarginEditing() {
+  isImageMarginEditing.value = false
+  // Ensure the value is a positive integer or zero
+  if (imageMargin.value < 0) imageMargin.value = 0
+  // Round to nearest integer if user entered decimal
+  imageMargin.value = Math.round(imageMargin.value)
+}
+
+function handleImageMarginKeydown(event: KeyboardEvent) {
+  if (event.key === 'Enter' || event.key === 'Escape') {
+    finishImageMarginEditing()
     ;(event.target as HTMLInputElement).blur()
   }
 }
@@ -865,10 +892,10 @@ const mainDivPaddingStyle = computed(() => {
             <div class="w-full overflow-hidden">
               <div class="flex w-full flex-col flex-wrap gap-4 sm:flex-row sm:gap-x-8">
                 <!-- Data to encode area -->
-                <div class="w-full overflow-hidden sm:grow">
+                <div class="w-full sm:grow">
                   <!-- Data templates button (moved above input) -->
                   <div class="mb-2 flex items-center justify-between">
-                    <label for="data">{{ t('Data to encode') }}</label>
+                    <label for="data">{{ t('Data to encode') }}:</label>
                     <button
                       @click="openDataModal"
                       aria-haspopup="dialog"
@@ -899,7 +926,8 @@ const mainDivPaddingStyle = computed(() => {
                   <textarea
                     id="data"
                     v-model="data"
-                    class="w-full text-input"
+                    class="text-input"
+                    style="width: calc(100% - 0.5rem); box-sizing: border-box"
                     :placeholder="t('data to encode e.g. a URL or a string')"
                   ></textarea>
                 </div>
@@ -907,9 +935,7 @@ const mainDivPaddingStyle = computed(() => {
             </div>
             <div class="w-full">
               <div class="mb-2 flex flex-row items-center gap-2">
-                <label>
-                  {{ t('Image') }}
-                </label>
+                <label> {{ t('Image') }}: </label>
                 <!-- Upload image button - only visible when no image is present -->
                 <button
                   v-if="!hasImage"
@@ -967,11 +993,33 @@ const mainDivPaddingStyle = computed(() => {
                   </svg>
                   <span>{{ t('Clear image') }}</span>
                 </button>
+                <!-- Image margin input -->
+                <div class="ml-4 flex items-center gap-2">
+                  <span>{{ t('Margin') }}:</span>
+                  <span
+                    v-if="!isImageMarginEditing"
+                    @click="startImageMarginEditing"
+                    class="cursor-pointer rounded bg-gray-100 px-2 py-1 text-sm hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600"
+                    :title="t('Click to edit image margin directly')"
+                  >
+                    {{ imageMargin || 0 }}px
+                  </span>
+                  <input
+                    v-else
+                    type="number"
+                    v-model="imageMargin"
+                    @blur="finishImageMarginEditing"
+                    @keydown="handleImageMarginKeydown"
+                    class="w-16 rounded border px-2 py-1 text-sm"
+                    min="0"
+                    id="image-margin-input"
+                  />
+                </div>
               </div>
             </div>
             <div id="color-settings" :class="'flex w-full flex-row flex-wrap gap-8'">
               <div class="flex flex-col gap-2">
-                <label>{{ t('Background color') }}</label>
+                <label>{{ t('Background color') }}:</label>
                 <div class="flex flex-row items-center gap-2">
                   <!-- No Background button (separate from brand colors) -->
                   <button
@@ -1032,7 +1080,7 @@ const mainDivPaddingStyle = computed(() => {
                 </div>
               </div>
               <div class="flex flex-col gap-2">
-                <label for="foreground-color">{{ t('Foreground color') }}</label>
+                <label for="foreground-color">{{ t('Foreground color') }}:</label>
                 <div class="flex flex-row items-center gap-2">
                   <!-- Brand color presets -->
                   <div class="flex gap-1">
@@ -1174,27 +1222,13 @@ const mainDivPaddingStyle = computed(() => {
             </div>
             <div class="flex w-full flex-col gap-4 sm:flex-row sm:gap-8">
               <div class="w-full sm:w-1/2">
-                <label for="margin">
-                  {{ t('Margin (px)') }}
-                </label>
+                <label for="margin"> {{ t('Margin (px)') }}: </label>
                 <input
                   class="text-input"
                   id="margin"
                   type="number"
                   placeholder="0"
                   v-model="margin"
-                />
-              </div>
-              <div class="w-full sm:w-1/2">
-                <label for="image-margin">
-                  {{ t('Image margin (px)') }}
-                </label>
-                <input
-                  class="text-input"
-                  id="image-margin"
-                  type="number"
-                  placeholder="0"
-                  v-model="imageMargin"
                 />
               </div>
             </div>
