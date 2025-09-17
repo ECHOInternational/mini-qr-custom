@@ -13,7 +13,6 @@ import {
 import { Combobox } from '@/components/ui/Combobox'
 import { Drawer, DrawerContent, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer'
 import VCardPreview from '@/components/VCardPreview.vue'
-import { createRandomColor, getRandomItemInArray } from '@/utils/color'
 import {
   copyImageToClipboard,
   downloadJpgElement,
@@ -156,30 +155,6 @@ const qrCodeProps = computed<StyledQRCodeProps>(() => ({
   imageOptions: imageOptions.value,
   qrOptions: qrOptions.value
 }))
-
-function randomizeStyleSettings() {
-  const dotTypes: DotType[] = [
-    'dots',
-    'rounded',
-    'classy',
-    'classy-rounded',
-    'square',
-    'extra-rounded'
-  ]
-  const cornerSquareTypes: CornerSquareType[] = ['dot', 'square', 'extra-rounded']
-  const cornerDotTypes: CornerDotType[] = ['dot', 'square']
-
-  dotsOptionsType.value = getRandomItemInArray(dotTypes)
-  dotsOptionsColor.value = createRandomColor()
-
-  cornersSquareOptionsType.value = getRandomItemInArray(cornerSquareTypes)
-  cornersSquareOptionsColor.value = createRandomColor()
-
-  cornersDotOptionsType.value = getRandomItemInArray(cornerDotTypes)
-  cornersDotOptionsColor.value = createRandomColor()
-
-  styleBackground.value = createRandomColor()
-}
 
 function uploadImage() {
   console.debug('Uploading image')
@@ -1388,23 +1363,6 @@ const mainDivPaddingStyle = computed(() => {
                     :button-label="t('Select QR code preset')"
                     :insert-divider-at-indexes="[0, 2]"
                   />
-                  <button
-                    class="button grid size-10 place-items-center"
-                    @click="randomizeStyleSettings"
-                    :aria-label="t('Randomize style')"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="24"
-                      height="24"
-                      viewBox="0 0 640 512"
-                    >
-                      <path
-                        fill="#888888"
-                        d="M274.9 34.3c-28.1-28.1-73.7-28.1-101.8 0L34.3 173.1c-28.1 28.1-28.1 73.7 0 101.8l138.8 138.8c28.1 28.1 73.7 28.1 101.8 0l138.8-138.8c28.1-28.1 28.1-73.7 0-101.8L274.9 34.3zM200 224a24 24 0 1 1 48 0a24 24 0 1 1-48 0zM96 200a24 24 0 1 1 0 48a24 24 0 1 1 0-48zm128 176a24 24 0 1 1 0-48a24 24 0 1 1 0 48zm128-176a24 24 0 1 1 0 48a24 24 0 1 1 0-48zm-128-80a24 24 0 1 1 0-48a24 24 0 1 1 0 48zm96 328c0 35.3 28.7 64 64 64h192c35.3 0 64-28.7 64-64V256c0-35.3-28.7-64-64-64H461.7c11.6 36 3.1 77-25.4 105.5L320 413.8V448zm160-120a24 24 0 1 1 0 48a24 24 0 1 1 0-48z"
-                      />
-                    </svg>
-                  </button>
                 </div>
               </div>
               <div class="w-full overflow-hidden">
