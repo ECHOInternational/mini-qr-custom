@@ -192,13 +192,17 @@ const allPresetOptions = computed(() => {
 const selectedPreset = ref<
   Preset & { key?: string; qrOptions?: { errorCorrectionLevel: ErrorCorrectionLevel } }
 >(defaultPreset)
+// Track if this is the initial load
+const isInitialPresetLoad = ref(true)
+
 watch(
   selectedPreset,
   () => {
-    // Only update data from preset if there's no initialData or if data is empty
-    if (!props.initialData || data.value === '') {
+    // Only update data on the very first preset load and if no data exists
+    if (isInitialPresetLoad.value && !data.value) {
       data.value = selectedPreset.value.data
     }
+    isInitialPresetLoad.value = false
 
     image.value = selectedPreset.value.image
     width.value = selectedPreset.value.width
