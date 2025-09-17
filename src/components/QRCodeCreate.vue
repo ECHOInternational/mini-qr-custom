@@ -63,7 +63,9 @@ watch(
   { immediate: true }
 )
 const image = ref()
-const size = ref() // Unified width/height since QR codes should always be square
+const size = ref(SCREEN_SIZE) // Unified width/height since QR codes should always be square, default to screen size
+const isSizeEditing = ref(false) // Track if user is editing size directly
+const isBorderRadiusEditing = ref(false) // Track if user is editing border radius directly
 const margin = ref()
 const imageMargin = ref()
 
@@ -152,6 +154,59 @@ function setScreenSize() {
 
 function setPrintSize() {
   size.value = PRINT_SIZE
+}
+
+function startSizeEditing() {
+  isSizeEditing.value = true
+  nextTick(() => {
+    const input = document.querySelector('input[type="number"]') as HTMLInputElement
+    if (input) {
+      input.focus()
+      input.select()
+    }
+  })
+}
+
+function finishSizeEditing() {
+  isSizeEditing.value = false
+  // Ensure the value is a positive integer
+  if (size.value < 1) size.value = 1
+  // Round to nearest integer if user entered decimal
+  size.value = Math.round(size.value)
+}
+
+function handleSizeKeydown(event: KeyboardEvent) {
+  if (event.key === 'Enter' || event.key === 'Escape') {
+    finishSizeEditing()
+    ;(event.target as HTMLInputElement).blur()
+  }
+}
+
+function startBorderRadiusEditing() {
+  isBorderRadiusEditing.value = true
+  nextTick(() => {
+    const input = document.querySelector('#border-radius-input') as HTMLInputElement
+    if (input) {
+      input.focus()
+      input.select()
+    }
+  })
+}
+
+function finishBorderRadiusEditing() {
+  isBorderRadiusEditing.value = false
+  // Ensure the value is within valid range (0-100%)
+  if (styleBorderRadius.value < 0) styleBorderRadius.value = 0
+  if (styleBorderRadius.value > 100) styleBorderRadius.value = 100
+  // Round to nearest integer
+  styleBorderRadius.value = Math.round(styleBorderRadius.value)
+}
+
+function handleBorderRadiusKeydown(event: KeyboardEvent) {
+  if (event.key === 'Enter' || event.key === 'Escape') {
+    finishBorderRadiusEditing()
+    ;(event.target as HTMLInputElement).blur()
+  }
 }
 
 function uploadImage() {
@@ -893,8 +948,8 @@ const mainDivPaddingStyle = computed(() => {
         <div class="px-2 pb-8 pt-4">
           <section class="space-y-8" aria-labelledby="qr-code-settings-title">
             <div>
-              <label>{{ t('Preset') }}</label>
               <div class="flex flex-row items-center justify-start gap-2">
+                <label class="mt-1">{{ t('Preset') }}:</label>
                 <Combobox
                   :items="allPresetOptions"
                   v-model:value="selectedPresetKey"
@@ -904,7 +959,7 @@ const mainDivPaddingStyle = computed(() => {
                 />
                 <button
                   @click="refreshCurrentPreset"
-                  class="secondary-button flex items-center justify-center p-2"
+                  class="cursor-pointer text-gray-500 transition-colors hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                   :title="t('Reset to preset defaults')"
                   :aria-label="t('Reset to preset defaults')"
                 >
@@ -1156,41 +1211,37 @@ const mainDivPaddingStyle = computed(() => {
                 v-model="image"
               />
             </div>
-            <div class="flex flex-row items-center gap-2">
-              <label for="with-background">
-                {{ t('With background') }}
-              </label>
-              <input id="with-background" type="checkbox" v-model="includeBackground" />
-            </div>
-            <div id="color-settings" :class="'flex w-full flex-row flex-wrap gap-4'">
-              <div
-                :inert="!includeBackground"
-                :class="[!includeBackground && 'opacity-30', 'flex flex-col gap-2']"
-              >
-                <label for="background-color">{{ t('Background color') }}</label>
-                <div class="flex flex-row items-center gap-2">
-                  <!-- Brand color presets -->
-                  <div class="flex gap-1">
-                    <button
-                      v-for="brandColor in brandColors"
-                      :key="brandColor.color"
-                      @click="styleBackground = brandColor.color"
-                      :title="brandColor.name"
-                      :style="{ backgroundColor: brandColor.color }"
-                      class="size-6 cursor-pointer rounded border border-gray-300 transition-transform hover:scale-110"
-                      :class="{
-                        'ring-2 ring-blue-500': styleBackground === brandColor.color,
-                        'border-gray-400': brandColor.color === '#FFFFFF'
-                      }"
+            <div id="color-settings" :class="'flex w-full flex-row flex-wrap gap-8'">
+              <div class="flex flex-col gap-2">
+                <div class="flex items-center gap-2">
+                  <input id="with-background" type="checkbox" v-model="includeBackground" />
+                  <label for="with-background">{{ t('Background color') }}</label>
+                </div>
+                <div :inert="!includeBackground" :class="[!includeBackground && 'opacity-30']">
+                  <div class="flex flex-row items-center gap-2">
+                    <!-- Brand color presets -->
+                    <div class="flex gap-1">
+                      <button
+                        v-for="brandColor in brandColors"
+                        :key="brandColor.color"
+                        @click="styleBackground = brandColor.color"
+                        :title="brandColor.name"
+                        :style="{ backgroundColor: brandColor.color }"
+                        class="size-6 cursor-pointer rounded border border-gray-300 transition-transform hover:scale-110"
+                        :class="{
+                          'ring-2 ring-blue-500': styleBackground === brandColor.color,
+                          'border-gray-400': brandColor.color === '#FFFFFF'
+                        }"
+                      />
+                    </div>
+                    <!-- Native color picker -->
+                    <input
+                      id="background-color"
+                      type="color"
+                      class="color-input"
+                      v-model="styleBackground"
                     />
                   </div>
-                  <!-- Native color picker -->
-                  <input
-                    id="background-color"
-                    type="color"
-                    class="color-input"
-                    v-model="styleBackground"
-                  />
                 </div>
               </div>
               <div class="flex flex-col gap-2">
@@ -1221,48 +1272,117 @@ const mainDivPaddingStyle = computed(() => {
                 </div>
               </div>
             </div>
-            <div class="flex w-full flex-col gap-4 sm:flex-row sm:gap-8">
-              <div class="w-full sm:w-1/2">
-                <label for="size">
-                  {{ t('Size (px)') }}
-                </label>
-                <div class="flex flex-col gap-2">
-                  <input
-                    class="text-input"
-                    id="size"
-                    type="number"
-                    placeholder="size in pixels"
-                    v-model="size"
-                  />
+            <div class="flex w-full flex-col gap-8">
+              <div class="w-full">
+                <div class="flex items-center justify-between gap-4">
+                  <div class="flex items-center gap-2">
+                    <span>{{ t('Size (px)') }}:</span>
+                    <span
+                      v-if="!isSizeEditing"
+                      @click="startSizeEditing"
+                      class="cursor-pointer rounded bg-gray-100 px-2 py-1 text-sm hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600"
+                      :title="t('Click to edit size directly')"
+                    >
+                      {{ size }}px
+                    </span>
+                    <input
+                      v-else
+                      type="number"
+                      v-model="size"
+                      @blur="finishSizeEditing"
+                      @keydown="handleSizeKeydown"
+                      class="w-20 rounded border px-2 py-1 text-sm"
+                      min="1"
+                      ref="sizeInput"
+                    />
+                  </div>
                   <div class="flex gap-2">
                     <button
                       @click="setScreenSize"
-                      class="secondary-button flex-1 text-sm"
+                      class="secondary-button text-sm"
                       :title="t('Optimized for screen display')"
                     >
                       {{ t('Screen') }} ({{ SCREEN_SIZE }}px)
                     </button>
                     <button
                       @click="setPrintSize"
-                      class="secondary-button flex-1 text-sm"
+                      class="secondary-button text-sm"
                       :title="t('Optimized for print quality')"
                     >
                       {{ t('Print') }} ({{ PRINT_SIZE }}px)
                     </button>
                   </div>
                 </div>
+                <div class="flex flex-col gap-4">
+                  <div class="relative mt-4">
+                    <input
+                      class="w-full"
+                      id="size"
+                      type="range"
+                      min="200"
+                      max="3000"
+                      step="10"
+                      v-model="size"
+                    />
+                    <!-- Tick marks for key values positioned proportionally -->
+                    <div class="pointer-events-none absolute top-6 w-full text-xs text-gray-500">
+                      <div class="relative">
+                        <span class="absolute left-0">200px</span>
+                        <span class="absolute" style="left: 28.57%">1000px</span>
+                        <span class="absolute right-0">3000px</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div class="w-full sm:w-1/2">
-                <label for="border-radius">
-                  {{ t('Border radius (px)') }}
-                </label>
-                <input
-                  class="text-input"
-                  id="border-radius"
-                  type="number"
-                  placeholder="24"
-                  v-model="styleBorderRadius"
-                />
+              <div class="w-full">
+                <div class="flex items-center justify-between gap-4">
+                  <div class="flex items-center gap-2">
+                    <span>{{ t('Border radius') }}:</span>
+                    <span
+                      v-if="!isBorderRadiusEditing"
+                      @click="startBorderRadiusEditing"
+                      class="cursor-pointer rounded bg-gray-100 px-2 py-1 text-sm hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600"
+                      :title="t('Click to edit border radius directly')"
+                    >
+                      {{ styleBorderRadius }}%
+                    </span>
+                    <input
+                      v-else
+                      type="number"
+                      v-model="styleBorderRadius"
+                      @blur="finishBorderRadiusEditing"
+                      @keydown="handleBorderRadiusKeydown"
+                      class="w-16 rounded border px-2 py-1 text-sm"
+                      min="0"
+                      max="100"
+                      id="border-radius-input"
+                    />
+                  </div>
+                </div>
+                <div class="flex flex-col gap-4">
+                  <div class="relative mt-4">
+                    <input
+                      class="w-full"
+                      id="border-radius"
+                      type="range"
+                      min="0"
+                      max="100"
+                      step="1"
+                      v-model="styleBorderRadius"
+                    />
+                    <!-- Tick marks for key values positioned proportionally -->
+                    <div class="pointer-events-none absolute top-6 w-full text-xs text-gray-500">
+                      <div class="relative">
+                        <span class="absolute left-0">0%</span>
+                        <span class="absolute" style="left: 25%">25%</span>
+                        <span class="absolute" style="left: 50%">50%</span>
+                        <span class="absolute" style="left: 75%">75%</span>
+                        <span class="absolute right-0">100%</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
             <div class="flex w-full flex-col gap-4 sm:flex-row sm:gap-8">
@@ -1410,3 +1530,109 @@ const mainDivPaddingStyle = computed(() => {
     @close="closeCopyModal"
   />
 </template>
+
+<style scoped>
+/* Custom styling for touch-friendly range sliders */
+#size[type='range'],
+#border-radius[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 12px;
+  border-radius: 6px;
+  background: #e5e7eb;
+  outline: none;
+  transition: background 0.3s;
+}
+
+#size[type='range']::-webkit-slider-thumb,
+#border-radius[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #3b82f6;
+  cursor: pointer;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+}
+
+#size[type='range']::-webkit-slider-thumb:hover,
+#border-radius[type='range']::-webkit-slider-thumb:hover {
+  background: #2563eb;
+  transform: scale(1.1);
+}
+
+#size[type='range']::-webkit-slider-thumb:active,
+#border-radius[type='range']::-webkit-slider-thumb:active {
+  transform: scale(1.2);
+}
+
+/* Firefox */
+#size[type='range']::-moz-range-thumb,
+#border-radius[type='range']::-moz-range-thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #3b82f6;
+  cursor: pointer;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+}
+
+#size[type='range']::-moz-range-thumb:hover,
+#border-radius[type='range']::-moz-range-thumb:hover {
+  background: #2563eb;
+  transform: scale(1.1);
+}
+
+#size[type='range']::-moz-range-thumb:active,
+#border-radius[type='range']::-moz-range-thumb:active {
+  transform: scale(1.2);
+}
+
+#size[type='range']::-moz-range-track,
+#border-radius[type='range']::-moz-range-track {
+  height: 12px;
+  border-radius: 6px;
+  background: #e5e7eb;
+  border: none;
+}
+
+/* Dark mode support */
+.dark #size[type='range'],
+.dark #border-radius[type='range'] {
+  background: #4b5563;
+}
+
+.dark #size[type='range']::-webkit-slider-thumb,
+.dark #border-radius[type='range']::-webkit-slider-thumb {
+  background: #60a5fa;
+  border-color: #1f2937;
+}
+
+.dark #size[type='range']::-webkit-slider-thumb:hover,
+.dark #border-radius[type='range']::-webkit-slider-thumb:hover {
+  background: #3b82f6;
+}
+
+.dark #size[type='range']::-moz-range-thumb,
+.dark #border-radius[type='range']::-moz-range-thumb {
+  background: #60a5fa;
+  border-color: #1f2937;
+}
+
+.dark #size[type='range']::-moz-range-thumb:hover,
+.dark #border-radius[type='range']::-moz-range-thumb:hover {
+  background: #3b82f6;
+}
+
+.dark #size[type='range']::-moz-range-track,
+.dark #border-radius[type='range']::-moz-range-track {
+  background: #4b5563;
+  height: 12px;
+  border-radius: 6px;
+}
+</style>
