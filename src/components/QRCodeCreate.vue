@@ -220,6 +220,11 @@ function selectBackgroundColor(color: string) {
   }
 }
 
+// Image state computed properties
+const hasImage = computed(() => !!image.value)
+const isBase64Image = computed(() => image.value?.startsWith('data:'))
+const isUrlImage = computed(() => hasImage.value && !isBase64Image.value)
+
 function uploadImage() {
   console.debug('Uploading image')
   const imageInput = document.createElement('input')
@@ -239,6 +244,11 @@ function uploadImage() {
     }
   }
   imageInput.click()
+}
+
+function clearImage() {
+  console.debug('Clearing image')
+  image.value = ''
 }
 // #endregion
 
@@ -1239,10 +1249,15 @@ const mainDivPaddingStyle = computed(() => {
             </div>
             <div class="w-full">
               <div class="mb-2 flex flex-row items-center gap-2">
-                <label for="image-url">
-                  {{ t('Logo image URL') }}
+                <label>
+                  {{ t('Image') }}
                 </label>
-                <button class="icon-button flex flex-row items-center" @click="uploadImage">
+                <!-- Upload image button - only visible when no image is present -->
+                <button
+                  v-if="!hasImage"
+                  class="icon-button flex flex-row items-center"
+                  @click="uploadImage"
+                >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     width="24"
@@ -1265,15 +1280,36 @@ const mainDivPaddingStyle = computed(() => {
                   </svg>
                   <span>{{ t('Upload image') }}</span>
                 </button>
+                <!-- Clear image button - only visible when image is present -->
+                <button
+                  v-if="hasImage"
+                  class="icon-button flex flex-row items-center text-red-600 hover:text-red-700"
+                  @click="clearImage"
+                  :title="t('Clear image')"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                  >
+                    <g
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                    >
+                      <path d="M3 6h18" />
+                      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                      <line x1="10" y1="11" x2="10" y2="17" />
+                      <line x1="14" y1="11" x2="14" y2="17" />
+                    </g>
+                  </svg>
+                  <span>{{ t('Clear image') }}</span>
+                </button>
               </div>
-              <textarea
-                name="image-url"
-                class="text-input"
-                id="image-url"
-                rows="1"
-                :placeholder="t('Logo image URL')"
-                v-model="image"
-              />
             </div>
             <div id="color-settings" :class="'flex w-full flex-row flex-wrap gap-8'">
               <div class="flex flex-col gap-2">
