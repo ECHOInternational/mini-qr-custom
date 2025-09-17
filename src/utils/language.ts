@@ -1,6 +1,5 @@
 const languageMap: Record<string, string> = {
   en: 'English',
-  es: 'Spanish',
   fr: 'French',
   th: 'Thai'
 }
