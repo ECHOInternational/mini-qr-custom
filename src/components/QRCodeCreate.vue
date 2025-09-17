@@ -209,6 +209,17 @@ function handleBorderRadiusKeydown(event: KeyboardEvent) {
   }
 }
 
+function selectBackgroundColor(color: string) {
+  if (color === 'transparent') {
+    includeBackground.value = false
+    styleBackground.value = 'transparent'
+  } else {
+    includeBackground.value = true
+    styleBackground.value = color
+    lastBackground.value = color
+  }
+}
+
 function uploadImage() {
   console.debug('Uploading image')
   const imageInput = document.createElement('input')
@@ -237,6 +248,7 @@ const PRINT_SIZE = 1000
 
 //#region /* Brand colors configuration */
 const brandColors = [
+  { name: t('No Background'), color: 'transparent' },
   { name: 'Desaturated Emerald', color: '#006F5E' },
   { name: 'Ivory White', color: '#EFE6D1' },
   { name: 'Warm Sandstone', color: '#9DA441' },
@@ -1213,35 +1225,68 @@ const mainDivPaddingStyle = computed(() => {
             </div>
             <div id="color-settings" :class="'flex w-full flex-row flex-wrap gap-8'">
               <div class="flex flex-col gap-2">
-                <div class="flex items-center gap-2">
-                  <input id="with-background" type="checkbox" v-model="includeBackground" />
-                  <label for="with-background">{{ t('Background color') }}</label>
-                </div>
-                <div :inert="!includeBackground" :class="[!includeBackground && 'opacity-30']">
-                  <div class="flex flex-row items-center gap-2">
-                    <!-- Brand color presets -->
-                    <div class="flex gap-1">
-                      <button
-                        v-for="brandColor in brandColors"
-                        :key="brandColor.color"
-                        @click="styleBackground = brandColor.color"
-                        :title="brandColor.name"
-                        :style="{ backgroundColor: brandColor.color }"
-                        class="size-6 cursor-pointer rounded border border-gray-300 transition-transform hover:scale-110"
-                        :class="{
-                          'ring-2 ring-blue-500': styleBackground === brandColor.color,
-                          'border-gray-400': brandColor.color === '#FFFFFF'
-                        }"
-                      />
-                    </div>
-                    <!-- Native color picker -->
-                    <input
-                      id="background-color"
-                      type="color"
-                      class="color-input"
-                      v-model="styleBackground"
-                    />
+                <label>{{ t('Background color') }}</label>
+                <div class="flex flex-row items-center gap-2">
+                  <!-- Brand color presets -->
+                  <div class="flex gap-1">
+                    <button
+                      v-for="brandColor in brandColors"
+                      :key="brandColor.color"
+                      @click="selectBackgroundColor(brandColor.color)"
+                      :title="brandColor.name"
+                      :style="{
+                        backgroundColor:
+                          brandColor.color === 'transparent' ? '#f9fafb' : brandColor.color,
+                        backgroundImage:
+                          brandColor.color === 'transparent'
+                            ? 'linear-gradient(45deg, #9ca3af 25%, transparent 25%), linear-gradient(-45deg, #9ca3af 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #9ca3af 75%), linear-gradient(-45deg, transparent 75%, #9ca3af 75%)'
+                            : 'none',
+                        backgroundSize: brandColor.color === 'transparent' ? '8px 8px' : 'auto',
+                        backgroundPosition:
+                          brandColor.color === 'transparent'
+                            ? '0 0, 0 4px, 4px -4px, -4px 0px'
+                            : 'auto'
+                      }"
+                      class="relative size-6 cursor-pointer rounded border border-gray-300 transition-transform hover:scale-110"
+                      :class="{
+                        'ring-2 ring-blue-500':
+                          (brandColor.color === 'transparent' && !includeBackground) ||
+                          (brandColor.color !== 'transparent' &&
+                            styleBackground === brandColor.color &&
+                            includeBackground),
+                        'border-gray-400': brandColor.color === '#FFFFFF'
+                      }"
+                    >
+                      <svg
+                        v-if="brandColor.color === 'transparent'"
+                        class="absolute inset-0 m-auto size-4"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                      >
+                        <circle
+                          cx="12"
+                          cy="12"
+                          r="9"
+                          :stroke="foregroundColor || '#000000'"
+                          stroke-width="3"
+                          fill="transparent"
+                        />
+                        <path
+                          d="M5.64 5.64l12.72 12.72"
+                          :stroke="foregroundColor || '#000000'"
+                          stroke-width="3"
+                          stroke-linecap="round"
+                        />
+                      </svg>
+                    </button>
                   </div>
+                  <!-- Native color picker -->
+                  <input
+                    id="background-color"
+                    type="color"
+                    class="color-input"
+                    v-model="styleBackground"
+                  />
                 </div>
               </div>
               <div class="flex flex-col gap-2">
