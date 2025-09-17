@@ -77,12 +77,16 @@ watch(
   }
 )
 
-const dotsOptionsColor = ref()
+// Unified foreground color for all QR code elements
+const foregroundColor = ref()
 const dotsOptionsType = ref()
-const cornersSquareOptionsColor = ref()
 const cornersSquareOptionsType = ref()
-const cornersDotOptionsColor = ref()
 const cornersDotOptionsType = ref()
+
+// Computed properties that tie all color elements to foregroundColor
+const dotsOptionsColor = computed(() => foregroundColor.value)
+const cornersSquareOptionsColor = computed(() => foregroundColor.value)
+const cornersDotOptionsColor = computed(() => foregroundColor.value)
 const styleBorderRadius = ref()
 const styledBorderRadiusFormatted = computed(() => `${styleBorderRadius.value}px`)
 const styleBackground = ref(defaultPreset.style.background)
@@ -223,11 +227,10 @@ watch(
     height.value = selectedPreset.value.height
     margin.value = selectedPreset.value.margin
     imageMargin.value = selectedPreset.value.imageOptions.margin
-    dotsOptionsColor.value = selectedPreset.value.dotsOptions.color
+    // Set unified foreground color (use dots color from preset)
+    foregroundColor.value = selectedPreset.value.dotsOptions.color
     dotsOptionsType.value = selectedPreset.value.dotsOptions.type
-    cornersSquareOptionsColor.value = selectedPreset.value.cornersSquareOptions.color
     cornersSquareOptionsType.value = selectedPreset.value.cornersSquareOptions.type
-    cornersDotOptionsColor.value = selectedPreset.value.cornersDotOptions.color
     cornersDotOptionsType.value = selectedPreset.value.cornersDotOptions.type
     styleBorderRadius.value = getNumericCSSValue(selectedPreset.value.style.borderRadius as string)
     styleBackground.value = selectedPreset.value.style.background
@@ -1118,83 +1121,29 @@ const mainDivPaddingStyle = computed(() => {
                 </div>
               </div>
               <div class="flex flex-col gap-2">
-                <label for="dots-color">{{ t('Dots color') }}</label>
+                <label for="foreground-color">{{ t('Foreground color') }}</label>
                 <div class="flex flex-row items-center gap-2">
                   <!-- Brand color presets -->
                   <div class="flex gap-1">
                     <button
                       v-for="brandColor in brandColors"
                       :key="brandColor.color"
-                      @click="dotsOptionsColor = brandColor.color"
+                      @click="foregroundColor = brandColor.color"
                       :title="brandColor.name"
                       :style="{ backgroundColor: brandColor.color }"
                       class="size-6 cursor-pointer rounded border border-gray-300 transition-transform hover:scale-110"
                       :class="{
-                        'ring-2 ring-blue-500': dotsOptionsColor === brandColor.color,
+                        'ring-2 ring-blue-500': foregroundColor === brandColor.color,
                         'border-gray-400': brandColor.color === '#FFFFFF'
                       }"
                     />
                   </div>
                   <!-- Native color picker -->
                   <input
-                    id="dots-color"
+                    id="foreground-color"
                     type="color"
                     class="color-input"
-                    v-model="dotsOptionsColor"
-                  />
-                </div>
-              </div>
-              <div class="flex flex-col gap-2">
-                <label for="corners-square-color">{{ t('Corners Square color') }}</label>
-                <div class="flex flex-row items-center gap-2">
-                  <!-- Brand color presets -->
-                  <div class="flex gap-1">
-                    <button
-                      v-for="brandColor in brandColors"
-                      :key="brandColor.color"
-                      @click="cornersSquareOptionsColor = brandColor.color"
-                      :title="brandColor.name"
-                      :style="{ backgroundColor: brandColor.color }"
-                      class="size-6 cursor-pointer rounded border border-gray-300 transition-transform hover:scale-110"
-                      :class="{
-                        'ring-2 ring-blue-500': cornersSquareOptionsColor === brandColor.color,
-                        'border-gray-400': brandColor.color === '#FFFFFF'
-                      }"
-                    />
-                  </div>
-                  <!-- Native color picker -->
-                  <input
-                    id="corners-square-color"
-                    type="color"
-                    class="color-input"
-                    v-model="cornersSquareOptionsColor"
-                  />
-                </div>
-              </div>
-              <div class="flex flex-col gap-2">
-                <label for="corners-dot-color">{{ t('Corners Dot color') }}</label>
-                <div class="flex flex-row items-center gap-2">
-                  <!-- Brand color presets -->
-                  <div class="flex gap-1">
-                    <button
-                      v-for="brandColor in brandColors"
-                      :key="brandColor.color"
-                      @click="cornersDotOptionsColor = brandColor.color"
-                      :title="brandColor.name"
-                      :style="{ backgroundColor: brandColor.color }"
-                      class="size-6 cursor-pointer rounded border border-gray-300 transition-transform hover:scale-110"
-                      :class="{
-                        'ring-2 ring-blue-500': cornersDotOptionsColor === brandColor.color,
-                        'border-gray-400': brandColor.color === '#FFFFFF'
-                      }"
-                    />
-                  </div>
-                  <!-- Native color picker -->
-                  <input
-                    id="corners-dot-color"
-                    type="color"
-                    class="color-input"
-                    v-model="cornersDotOptionsColor"
+                    v-model="foregroundColor"
                   />
                 </div>
               </div>
