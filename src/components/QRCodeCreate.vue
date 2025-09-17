@@ -734,7 +734,7 @@ const mainDivPaddingStyle = computed(() => {
             <div class="flex origin-center scale-[0.7] items-center justify-center md:scale-100">
               <div class="grid place-items-center">
                 <div
-                  class="grid place-items-center overflow-hidden"
+                  class="relative grid place-items-center overflow-hidden"
                   :style="[
                     style,
                     {
@@ -743,6 +743,26 @@ const mainDivPaddingStyle = computed(() => {
                     }
                   ]"
                 >
+                  <!-- Checkerboard background for transparent QR codes -->
+                  <div
+                    v-if="!includeBackground || styleBackground === 'transparent'"
+                    class="absolute inset-0"
+                    style="
+                      background-image:
+                        linear-gradient(45deg, #ccc 25%, transparent 25%),
+                        linear-gradient(-45deg, #ccc 25%, transparent 25%),
+                        linear-gradient(45deg, transparent 75%, #ccc 75%),
+                        linear-gradient(-45deg, transparent 75%, #ccc 75%);
+                      background-size: 12px 12px;
+                      background-position:
+                        0 0,
+                        0 6px,
+                        6px -6px,
+                        -6px 0px;
+                      opacity: 0.4;
+                      z-index: 1;
+                    "
+                  ></div>
                   <StyledQRCode
                     v-bind="{
                       ...qrCodeProps,
@@ -752,6 +772,7 @@ const mainDivPaddingStyle = computed(() => {
                     }"
                     role="img"
                     aria-label="QR code preview"
+                    style="position: relative; z-index: 2"
                   />
                 </div>
               </div>
@@ -794,27 +815,58 @@ const mainDivPaddingStyle = computed(() => {
     <Teleport to="#main-content-container" v-if="mainContentContainer != null">
       <div id="main-content">
         <div id="qr-code-container" class="grid origin-center place-items-center">
+          <!-- Preview wrapper with checkerboard background -->
           <div
-            id="element-to-export"
-            class="grid place-items-center overflow-hidden"
-            :style="[
-              style,
-              {
-                width: `${PREVIEW_QRCODE_DIM_UNIT}px`,
-                height: `${PREVIEW_QRCODE_DIM_UNIT}px`
-              }
-            ]"
+            class="relative grid place-items-center overflow-hidden"
+            :style="{
+              width: `${PREVIEW_QRCODE_DIM_UNIT}px`,
+              height: `${PREVIEW_QRCODE_DIM_UNIT}px`
+            }"
           >
-            <StyledQRCode
-              v-bind="{
-                ...qrCodeProps,
-                data: data?.length > 0 ? data : t('Have nice day!'),
-                width: PREVIEW_QRCODE_DIM_UNIT,
-                height: PREVIEW_QRCODE_DIM_UNIT
-              }"
-              role="img"
-              aria-label="QR code"
-            />
+            <!-- Checkerboard background for transparent QR codes -->
+            <div
+              v-if="!includeBackground || styleBackground === 'transparent'"
+              class="absolute inset-0"
+              style="
+                background-image:
+                  linear-gradient(45deg, #ccc 25%, transparent 25%),
+                  linear-gradient(-45deg, #ccc 25%, transparent 25%),
+                  linear-gradient(45deg, transparent 75%, #ccc 75%),
+                  linear-gradient(-45deg, transparent 75%, #ccc 75%);
+                background-size: 12px 12px;
+                background-position:
+                  0 0,
+                  0 6px,
+                  6px -6px,
+                  -6px 0px;
+                opacity: 0.4;
+                z-index: 1;
+              "
+            ></div>
+            <!-- Export element (no background, no styling) -->
+            <div
+              id="element-to-export"
+              class="grid place-items-center overflow-hidden"
+              :style="[
+                style,
+                {
+                  width: `${PREVIEW_QRCODE_DIM_UNIT}px`,
+                  height: `${PREVIEW_QRCODE_DIM_UNIT}px`
+                }
+              ]"
+            >
+              <StyledQRCode
+                v-bind="{
+                  ...qrCodeProps,
+                  data: data?.length > 0 ? data : t('Have nice day!'),
+                  width: PREVIEW_QRCODE_DIM_UNIT,
+                  height: PREVIEW_QRCODE_DIM_UNIT
+                }"
+                role="img"
+                aria-label="QR code"
+                style="position: relative; z-index: 2"
+              />
+            </div>
           </div>
         </div>
         <div class="mt-4 flex flex-col items-center gap-8">
