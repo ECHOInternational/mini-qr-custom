@@ -164,10 +164,7 @@ function uploadImage() {
 // #region /* Preset settings */
 const isPresetSelectOpen = ref(false)
 const allPresetOptions = computed(() => {
-  const options = lastCustomLoadedPreset.value
-    ? [lastCustomLoadedPreset.value, ...allQrCodePresets]
-    : allQrCodePresets
-  return options.map((preset) => ({ value: preset.name, label: t(preset.name) }))
+  return allQrCodePresets.map((preset) => ({ value: preset.name, label: t(preset.name) }))
 })
 const selectedPreset = ref<
   Preset & { key?: string; qrOptions?: { errorCorrectionLevel: ErrorCorrectionLevel } }
@@ -196,33 +193,13 @@ watch(selectedPreset, () => {
     selectedPreset.value.qrOptions && selectedPreset.value.qrOptions.errorCorrectionLevel
       ? selectedPreset.value.qrOptions.errorCorrectionLevel
       : 'Q'
-  // Most presets don't have a frame, so we set it to false by default
 })
 
-const LAST_LOADED_LOCALLY_PRESET_KEY = 'Last saved locally'
-const LOADED_FROM_FILE_PRESET_KEY = 'Loaded from file'
-const CUSTOM_LOADED_PRESET_KEYS = [LAST_LOADED_LOCALLY_PRESET_KEY, LOADED_FROM_FILE_PRESET_KEY]
-const selectedPresetKey = ref<string>(
-  import.meta.env.VITE_DISABLE_LOCAL_STORAGE === 'true'
-    ? defaultPreset.name
-    : localStorage.getItem('qrCodeConfig')
-      ? LAST_LOADED_LOCALLY_PRESET_KEY
-      : defaultPreset.name
-)
-const lastCustomLoadedPreset = ref<Preset>()
+const selectedPresetKey = ref<string>(defaultPreset.name)
 watch(
   selectedPresetKey,
   (newKey, prevKey) => {
     if (newKey === prevKey || !newKey) return
-
-    if (
-      import.meta.env.VITE_DISABLE_LOCAL_STORAGE !== 'true' &&
-      CUSTOM_LOADED_PRESET_KEYS.includes(newKey) &&
-      lastCustomLoadedPreset.value
-    ) {
-      selectedPreset.value = lastCustomLoadedPreset.value
-      return
-    }
 
     const updatedPreset = allQrCodePresets.find((preset) => preset.name === newKey)
     if (updatedPreset) {
@@ -346,108 +323,7 @@ function downloadQRImage(format: 'png' | 'svg' | 'jpg') {
     generateBatchQRCodes(format)
   }
 }
-//#endregion
-
-//#region /* QR Config Utils - Saving, Loading and Downloading */
-interface QRCodeConfig {
-  props: StyledQRCodeProps & {
-    name?: string
-  }
-  style: {
-    borderRadius: string
-    background?: string
-  }
-}
-
-function createQrConfig(): QRCodeConfig {
-  return {
-    props: qrCodeProps.value,
-    style: style.value
-  }
-}
-
-function downloadQRConfig() {
-  console.debug('Downloading QR code config')
-  const qrCodeConfig = createQrConfig()
-  const qrCodeConfigString = JSON.stringify(qrCodeConfig)
-  const qrCodeConfigBlob = new Blob([qrCodeConfigString], { type: 'application/json' })
-  const qrCodeConfigUrl = URL.createObjectURL(qrCodeConfigBlob)
-  const qrCodeConfigLink = document.createElement('a')
-  qrCodeConfigLink.href = qrCodeConfigUrl
-  qrCodeConfigLink.download = 'qr-code-config.json'
-  qrCodeConfigLink.click()
-}
-
-function saveQRConfigToLocalStorage() {
-  const qrCodeConfig = createQrConfig()
-  const qrCodeConfigString = JSON.stringify(qrCodeConfig)
-  localStorage.setItem('qrCodeConfig', qrCodeConfigString)
-}
-
-function loadQRConfig(jsonString: string, key?: string) {
-  const qrCodeConfig = JSON.parse(jsonString) as QRCodeConfig
-  const qrCodeProps = qrCodeConfig.props
-  const qrCodeStyle = qrCodeConfig.style
-
-  const preset = {
-    ...qrCodeProps,
-    style: qrCodeStyle
-  } as Preset
-
-  if (key) {
-    preset.name = key
-    lastCustomLoadedPreset.value = preset
-    selectedPresetKey.value = key
-  }
-
-  selectedPreset.value = preset
-}
-
-function loadQrConfigFromFile() {
-  console.debug('Loading QR code config')
-  const qrCodeConfigInput = document.createElement('input')
-  qrCodeConfigInput.type = 'file'
-  qrCodeConfigInput.accept = 'application/json'
-  qrCodeConfigInput.onchange = (event: Event) => {
-    const target = event.target as HTMLInputElement
-    if (target.files) {
-      const file = target.files[0]
-      const reader = new FileReader()
-      reader.onload = (event: ProgressEvent<FileReader>) => {
-        const target = event.target as FileReader
-        const result = target.result as string
-        loadQRConfig(result, LOADED_FROM_FILE_PRESET_KEY)
-      }
-      reader.readAsText(file)
-    }
-  }
-  qrCodeConfigInput.click()
-}
-
-watch(
-  [qrCodeProps, style],
-  () => {
-    saveQRConfigToLocalStorage()
-  },
-  {
-    deep: true
-  }
-)
-
 onMounted(() => {
-  if (import.meta.env.VITE_DISABLE_LOCAL_STORAGE !== 'true') {
-    const qrCodeConfigString = localStorage.getItem('qrCodeConfig')
-    if (qrCodeConfigString) {
-      loadQRConfig(qrCodeConfigString, LAST_LOADED_LOCALLY_PRESET_KEY)
-    } else {
-      // No localStorage data found, use the environment variable default preset
-      selectedPreset.value = { ...defaultPreset }
-      selectedPresetKey.value = defaultPreset.name
-    }
-    // No separate frameConfig loading from localStorage noted,
-    // assuming selectedFramePresetKey watcher handles it if lastCustomLoadedFramePreset was populated by loadQRConfig
-  }
-
   // Set initial data if provided through props
   if (props.initialData) {
     data.value = props.initialData
@@ -824,53 +700,6 @@ const mainDivPaddingStyle = computed(() => {
               </svg>
               <p>{{ t('Copy QR Code to clipboard') }}</p>
             </button>
-            <button
-              id="save-qr-code-config-button"
-              class="button flex w-fit max-w-full flex-row items-center gap-1"
-              @click="downloadQRConfig"
-              :title="t('Save QR Code configuration')"
-              :aria-label="t('Save QR Code configuration')"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-                <g
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                >
-                  <path d="M14 3v4a1 1 0 0 0 1 1h4" />
-                  <path
-                    d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2zm-5-4v-6"
-                  />
-                  <path d="M9.5 13.5L12 11l2.5 2.5" />
-                </g>
-              </svg>
-              <p>{{ t('Save QR Code configuration') }}</p>
-            </button>
-            <button
-              id="load-qr-code-config-button"
-              class="button flex w-fit max-w-full flex-row items-center gap-1"
-              @click="loadQrConfigFromFile"
-              :aria-label="t('Load QR Code configuration')"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-                <g
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                >
-                  <path d="M14 3v4a1 1 0 0 0 1 1h4" />
-                  <path
-                    d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2zm-5-10v6"
-                  />
-                  <path d="M9.5 13.5L12 11l2.5 2.5" />
-                </g>
-              </svg>
-              <p>{{ t('Load QR Code configuration') }}</p>
-            </button>
           </div>
           <div id="export-options" class="grid place-items-center gap-4">
             <p class="text-zinc-900 dark:text-zinc-100">{{ t('Export as') }}</p>
@@ -887,7 +716,7 @@ const mainDivPaddingStyle = computed(() => {
                 "
                 :aria-label="t('Download QR Code as PNG')"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24">
                   <g fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M14 3v4a1 1 0 0 0 1 1h4" />
                     <path d="M5 12V5a2 2 0 0 1 2-2h7l5 5v4" />
@@ -917,7 +746,7 @@ const mainDivPaddingStyle = computed(() => {
                 "
                 :aria-label="t('Download QR Code as JPG')"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24">
                   <g fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M14 3v4a1 1 0 0 0 1 1h4" />
                     <path d="M5 12V5a2 2 0 0 1 2-2h7l5 5v4" />
@@ -947,7 +776,7 @@ const mainDivPaddingStyle = computed(() => {
                 "
                 :aria-label="t('Download QR Code as SVG')"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24">
                   <g fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M14 3v4a1 1 0 0 0 1 1h4" />
                     <path d="M5 12V5a2 2 0 0 1 2-2h7l5 5v4" />
@@ -978,7 +807,7 @@ const mainDivPaddingStyle = computed(() => {
       <div class="flex w-full flex-col gap-4">
         <h2
           id="qr-code-settings-title"
-          class="px-4 text-2xl font-semibold text-gray-700 dark:text-gray-100 md:px-6 lg:px-8"
+          class="text-2xl font-semibold text-gray-700 dark:text-gray-100"
         >
           {{ t('QR code settings') }}
         </h2>
