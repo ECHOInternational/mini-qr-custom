@@ -26,6 +26,6 @@
   },
   "style": {
     "borderRadius": "0px",
-    "background": "#ffffff"
+    "background": "transparent"
   }
 }

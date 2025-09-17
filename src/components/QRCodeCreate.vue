@@ -188,6 +188,10 @@ watch(selectedPreset, () => {
   cornersDotOptionsType.value = selectedPreset.value.cornersDotOptions.type
   styleBorderRadius.value = getNumericCSSValue(selectedPreset.value.style.borderRadius as string)
   styleBackground.value = selectedPreset.value.style.background
+  // Update lastBackground when loading a preset with non-transparent background
+  if (selectedPreset.value.style.background !== 'transparent') {
+    lastBackground.value = selectedPreset.value.style.background
+  }
   includeBackground.value = selectedPreset.value.style.background !== 'transparent'
   errorCorrectionLevel.value =
     selectedPreset.value.qrOptions && selectedPreset.value.qrOptions.errorCorrectionLevel
