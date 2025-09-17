@@ -25,7 +25,7 @@
     }
   },
   "style": {
-    "borderRadius": "0x",
+    "borderRadius": "0px",
     "background": "#ffffff"
   }
 }

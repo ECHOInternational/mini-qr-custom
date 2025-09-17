@@ -1,5 +1,8 @@
 import PlainConfig from '@/assets/presets/plain.json'
 import EchoBlackConfig from '@/assets/presets/echo_black.json'
+import EchoGreenConfig from '@/assets/presets/echo_green.json'
+import EchoIvoryConfig from '@/assets/presets/echo_ivory.json'
+import EchoWhiteConfig from '@/assets/presets/echo_white.json'
 import type { DrawType, Options as StyledQRCodeProps } from 'qr-code-styling'
 
 export interface CustomStyleProps {
@@ -45,9 +48,32 @@ export const echoBlackPreset = {
   style: EchoBlackConfig.style
 } as Preset
 
+export const echoGreenPreset = {
+  ...defaultPresetOptions,
+  name: 'ECHO Green',
+  ...EchoGreenConfig.props,
+  style: EchoGreenConfig.style
+} as Preset
+
+export const echoIvoryPreset = {
+  ...defaultPresetOptions,
+  name: 'ECHO Ivory',
+  ...EchoIvoryConfig.props,
+  style: EchoIvoryConfig.style
+} as Preset
+
+export const echoWhitePreset = {
+  ...defaultPresetOptions,
+  name: 'ECHO White',
+  ...EchoWhiteConfig.props,
+  style: EchoWhiteConfig.style
+} as Preset
+
 export const builtInPresets: Preset[] = [
   plainPreset,
-  ...[echoBlackPreset].sort((a, b) => a.name.localeCompare(b.name))
+  ...[echoBlackPreset, echoGreenPreset, echoIvoryPreset, echoWhitePreset].sort((a, b) =>
+    a.name.localeCompare(b.name)
+  )
 ]
 
 function parsePresetsFromEnv(envVal?: string): Preset[] | undefined {
