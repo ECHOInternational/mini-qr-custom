@@ -3,12 +3,6 @@ import BatchExportFieldsGuide from '@/components/BatchExportFieldsGuide.vue'
 import CopyImageModal from '@/components/CopyImageModal.vue'
 import DataTemplatesModal from '@/components/DataTemplatesModal.vue'
 import StyledQRCode from '@/components/StyledQRCode.vue'
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger
-} from '@/components/ui/accordion'
 import { Combobox } from '@/components/ui/Combobox'
 import { Drawer, DrawerContent, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer'
 import VCardPreview from '@/components/VCardPreview.vue'
@@ -981,473 +975,468 @@ const mainDivPaddingStyle = computed(() => {
       id="settings"
       class="flex w-full grow flex-col items-start gap-8 overflow-hidden text-start"
     >
-      <Accordion
-        type="multiple"
-        collapsible
-        class="flex w-full flex-col gap-4"
-        :default-value="['qr-code-settings']"
-      >
-        <AccordionItem value="qr-code-settings">
-          <AccordionTrigger
-            class="button !px-4 text-2xl text-gray-700 outline-none dark:text-gray-100 md:!px-6 lg:!px-8"
-            ><span id="qr-code-settings-title">{{ t('QR code settings') }}</span></AccordionTrigger
-          >
-          <AccordionContent class="px-2 pb-8 pt-4">
-            <section class="space-y-8" aria-labelledby="qr-code-settings-title">
-              <div>
-                <label>{{ t('Preset') }}</label>
-                <div class="flex flex-row items-center justify-start gap-2">
-                  <Combobox
-                    :items="allPresetOptions"
-                    v-model:value="selectedPresetKey"
-                    v-model:open="isPresetSelectOpen"
-                    :button-label="t('Select QR code preset')"
-                    :insert-divider-at-indexes="[0, 2]"
-                  />
-                </div>
-              </div>
-              <div class="w-full overflow-hidden">
-                <div class="flex w-full flex-col flex-wrap gap-4 sm:flex-row sm:gap-x-8">
-                  <!-- Data to encode area -->
-                  <div class="w-full overflow-hidden sm:grow">
-                    <!-- Header row: Label + Mode Toggles + Batch Options -->
-                    <div class="mb-2 flex items-center gap-4">
-                      <label for="data">{{ t('Data to encode') }}</label>
-                      <!-- Mode Toggle Buttons -->
-                      <div class="flex grow items-center gap-2">
-                        <button
-                          :class="[
-                            'secondary-button',
-                            { 'opacity-50': exportMode === ExportMode.Single } // Dim if active
-                          ]"
-                          @click="exportMode = ExportMode.Single"
-                        >
-                          {{ $t('Single export') }}
-                        </button>
-                        <button
-                          :class="[
-                            'secondary-button',
-                            { 'opacity-50': exportMode === ExportMode.Batch } // Dim if active
-                          ]"
-                          @click="exportMode = ExportMode.Batch"
-                        >
-                          {{ $t('Batch export') }}
-                        </button>
-                        <!-- Batch specific options -->
-                        <div
-                          v-if="exportMode === ExportMode.Batch"
-                          :class="[
-                            'flex grow items-center justify-end gap-2',
-                            dataStringsFromCsv.length > 0 && 'opacity-80'
-                          ]"
-                        ></div>
-                      </div>
-                    </div>
-                    <!-- Single Mode Input -->
-                    <div v-if="exportMode === ExportMode.Single" class="flex flex-col items-start">
-                      <textarea
-                        id="data"
-                        v-model="data"
-                        class="mr-2 grow text-input"
-                        :placeholder="t('data to encode e.g. a URL or a string')"
-                      ></textarea>
-                      <button
-                        @click="openDataModal"
-                        aria-haspopup="dialog"
-                        :aria-expanded="isDataModalVisible"
-                        class="secondary-button mt-2 flex items-center gap-1 self-end"
-                        :aria-label="t('Open data type generator')"
-                      >
-                        <span>{{ t('Data templates') }}</span>
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                        >
-                          <!-- Icon from Tabler Icons by Paweł Kuna - https://github.com/tabler/tabler-icons/blob/master/LICENSE -->
-                          <path
-                            fill="none"
-                            stroke="#888888"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="m7 7l5 5l-5 5m6-10l5 5l-5 5"
-                          />
-                        </svg>
-                      </button>
-                    </div>
-                    <template v-if="exportMode === ExportMode.Batch">
-                      <template v-if="!inputFileForBatchEncoding">
-                        <BatchExportFieldsGuide />
-                        <button
-                          class="!ms-0 mt-4 flex items-center justify-center rounded-lg border-2 border-dashed border-gray-300 p-1 py-4 text-center text-input"
-                          :aria-label="t('Choose a CSV file containing data to encode')"
-                          @click="fileInput?.click()"
-                          @keyup.enter="fileInput?.click()"
-                          @keyup.space="fileInput?.click()"
-                          @dragover.prevent
-                          @drop.prevent="onBatchInputFileUpload"
-                        >
-                          <div class="flex flex-col items-center">
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              width="48"
-                              height="48"
-                              viewBox="0 0 24 24"
-                              class="mb-2 text-gray-400"
-                            >
-                              <path
-                                fill="currentColor"
-                                d="M11 16V7.85l-2.6 2.6L7 9l5-5l5 5l-1.4 1.45l-2.6-2.6V16h-2Zm-5 4q-.825 0-1.413-.588T4 18v-3h2v3h12v-3h2v3q0 .825-.588 1.413T18 20H6Z"
-                              />
-                            </svg>
-                            <p aria-hidden="true" class="text-sm">
-                              {{ $t('Upload a CSV file') }}
-                            </p>
-                          </div>
-                          <input
-                            ref="fileInput"
-                            type="file"
-                            accept=".csv,.txt"
-                            class="hidden"
-                            @change="onBatchInputFileUpload"
-                          />
-                        </button>
-                      </template>
-                      <div v-else-if="isValidCsv" class="p-4 text-center">
-                        <div v-if="isBatchExportSuccess">
-                          <p>{{ $t('QR codes have been successfully exported.') }}</p>
-                          <button class="button mt-4" @click="inputFileForBatchEncoding = null">
-                            {{ $t('Start new batch export') }}
-                          </button>
-                        </div>
-                        <div v-else-if="currentExportedQrCodeIndex == null && !isExportingBatchQRs">
-                          <div v-if="dataStringsFromCsv.length > 0" class="mt-4">
-                            <div
-                              class="flex flex-col gap-2 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800"
-                            >
-                              <div v-if="previewRow && 'firstName' in previewRow">
-                                <VCardPreview :vCard="previewRow" />
-                              </div>
-                              <div v-else>
-                                <div class="space-y-2">
-                                  <div class="flex flex-col gap-1">
-                                    <span
-                                      class="text-xs font-medium text-gray-500 dark:text-gray-400"
-                                      >{{ $t('Data:') }}</span
-                                    >
-                                    <code
-                                      class="rounded bg-white px-2 py-1 font-mono text-sm dark:bg-gray-900"
-                                    >
-                                      {{ dataStringsFromCsv[previewRowIndex] }}
-                                    </code>
-                                  </div>
-                                  <div v-if="fileNamesFromCsv[previewRowIndex]">
-                                    <span
-                                      class="text-xs font-medium text-gray-500 dark:text-gray-400"
-                                      >{{ $t('File name:') }}</span
-                                    >
-                                    <code
-                                      class="rounded bg-white px-2 py-1 font-mono text-sm dark:bg-gray-900"
-                                    >
-                                      {{ fileNamesFromCsv[previewRowIndex] }}
-                                    </code>
-                                  </div>
-                                </div>
-                              </div>
-                              <div class="mt-2 flex items-center justify-between">
-                                <button
-                                  class="rounded bg-gray-200 px-2 py-1 text-gray-700 disabled:opacity-50 dark:bg-gray-700 dark:text-gray-200 dark:disabled:opacity-60"
-                                  :disabled="previewRowIndex === 0"
-                                  @click="previewRowIndex--"
-                                >
-                                  &lt;
-                                </button>
-                                <span class="text-xs text-gray-500 dark:text-gray-400"
-                                  >{{ previewRowIndex + 1 }} / {{ dataStringsFromCsv.length }}</span
-                                >
-                                <button
-                                  class="rounded bg-gray-200 px-2 py-1 text-gray-700 disabled:opacity-50 dark:bg-gray-700 dark:text-gray-200 dark:disabled:opacity-60"
-                                  :disabled="previewRowIndex === dataStringsFromCsv.length - 1"
-                                  @click="previewRowIndex++"
-                                >
-                                  &gt;
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        <div v-else-if="currentExportedQrCodeIndex != null">
-                          <p>{{ $t('Creating QR codes... This may take a while.') }}</p>
-                          <p>
-                            {{
-                              $t('{index} / {count} QR codes have been created.', {
-                                index: currentExportedQrCodeIndex + 1,
-                                count: dataStringsFromCsv.length
-                              })
-                            }}
-                          </p>
-                        </div>
-                      </div>
-                      <div v-else class="p-4 text-center text-red-500">
-                        <p>{{ $t('Invalid CSV') }}</p>
-                      </div>
-                    </template>
-                  </div>
-                </div>
-              </div>
-              <div class="w-full">
-                <div class="mb-2 flex flex-row items-center gap-2">
-                  <label for="image-url">
-                    {{ t('Logo image URL') }}
-                  </label>
-                  <button class="icon-button flex flex-row items-center" @click="uploadImage">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                    >
-                      <g
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                      >
-                        <path d="M14 3v4a1 1 0 0 0 1 1h4" />
-                        <path
-                          d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2zm-5-10v6"
-                        />
-                        <path d="M9.5 13.5L12 11l2.5 2.5" />
-                      </g>
-                    </svg>
-                    <span>{{ t('Upload image') }}</span>
-                  </button>
-                </div>
-                <textarea
-                  name="image-url"
-                  class="text-input"
-                  id="image-url"
-                  rows="1"
-                  :placeholder="t('Logo image URL')"
-                  v-model="image"
+      <div class="flex w-full flex-col gap-4">
+        <h2
+          id="qr-code-settings-title"
+          class="px-4 text-2xl font-semibold text-gray-700 dark:text-gray-100 md:px-6 lg:px-8"
+        >
+          {{ t('QR code settings') }}
+        </h2>
+        <div class="px-2 pb-8 pt-4">
+          <section class="space-y-8" aria-labelledby="qr-code-settings-title">
+            <div>
+              <label>{{ t('Preset') }}</label>
+              <div class="flex flex-row items-center justify-start gap-2">
+                <Combobox
+                  :items="allPresetOptions"
+                  v-model:value="selectedPresetKey"
+                  v-model:open="isPresetSelectOpen"
+                  :button-label="t('Select QR code preset')"
+                  :insert-divider-at-indexes="[0, 2]"
                 />
               </div>
-              <div class="flex flex-row items-center gap-2">
-                <label for="with-background">
-                  {{ t('With background') }}
-                </label>
-                <input id="with-background" type="checkbox" v-model="includeBackground" />
-              </div>
-              <div id="color-settings" :class="'flex w-full flex-row flex-wrap gap-4'">
-                <div
-                  :inert="!includeBackground"
-                  :class="[!includeBackground && 'opacity-30', 'flex flex-row items-center gap-2']"
-                >
-                  <label for="background-color">{{ t('Background color') }}</label>
-                  <input
-                    id="background-color"
-                    type="color"
-                    class="color-input"
-                    v-model="styleBackground"
-                  />
-                </div>
-                <div class="flex flex-row items-center gap-2">
-                  <label for="dots-color">{{ t('Dots color') }}</label>
-                  <input
-                    id="dots-color"
-                    type="color"
-                    class="color-input"
-                    v-model="dotsOptionsColor"
-                  />
-                </div>
-                <div class="flex flex-row items-center gap-2">
-                  <label for="corners-square-color">{{ t('Corners Square color') }}</label>
-                  <input
-                    id="corners-square-color"
-                    type="color"
-                    class="color-input"
-                    v-model="cornersSquareOptionsColor"
-                  />
-                </div>
-                <div class="flex flex-row items-center gap-2">
-                  <label for="corners-dot-color">{{ t('Corners Dot color') }}</label>
-                  <input
-                    id="corners-dot-color"
-                    type="color"
-                    class="color-input"
-                    v-model="cornersDotOptionsColor"
-                  />
-                </div>
-              </div>
-              <div class="flex w-full flex-col gap-4 sm:flex-row sm:gap-8">
-                <div class="w-full sm:w-1/3">
-                  <label for="width">
-                    {{ t('Width (px)') }}
-                  </label>
-                  <input
-                    class="text-input"
-                    id="width"
-                    type="number"
-                    placeholder="width in pixels"
-                    v-model="width"
-                  />
-                </div>
-                <div class="w-full sm:w-1/3">
-                  <label for="height">
-                    {{ t('Height (px)') }}
-                  </label>
-                  <input
-                    class="text-input"
-                    id="height"
-                    type="number"
-                    placeholder="height in pixels"
-                    v-model="height"
-                  />
-                </div>
-                <div class="w-full sm:w-1/3">
-                  <label for="border-radius">
-                    {{ t('Border radius (px)') }}
-                  </label>
-                  <input
-                    class="text-input"
-                    id="border-radius"
-                    type="number"
-                    placeholder="24"
-                    v-model="styleBorderRadius"
-                  />
-                </div>
-              </div>
-              <div class="flex w-full flex-col gap-4 sm:flex-row sm:gap-8">
-                <div class="w-full sm:w-1/2">
-                  <label for="margin">
-                    {{ t('Margin (px)') }}
-                  </label>
-                  <input
-                    class="text-input"
-                    id="margin"
-                    type="number"
-                    placeholder="0"
-                    v-model="margin"
-                  />
-                </div>
-                <div class="w-full sm:w-1/2">
-                  <label for="image-margin">
-                    {{ t('Image margin (px)') }}
-                  </label>
-                  <input
-                    class="text-input"
-                    id="image-margin"
-                    type="number"
-                    placeholder="0"
-                    v-model="imageMargin"
-                  />
-                </div>
-              </div>
-              <div
-                id="dots-squares-settings"
-                class="mb-4 flex w-full flex-col flex-wrap gap-6 md:flex-row"
-              >
-                <fieldset class="flex-1" role="radio" tabindex="0">
-                  <legend>{{ t('Dots type') }}</legend>
-                  <div
-                    class="radio"
-                    v-for="type in [
-                      'dots',
-                      'rounded',
-                      'classy',
-                      'classy-rounded',
-                      'square',
-                      'extra-rounded'
-                    ]"
-                    :key="type"
-                  >
-                    <input
-                      :id="'dotsOptionsType-' + type"
-                      type="radio"
-                      v-model="dotsOptionsType"
-                      :value="type"
-                    />
-                    <label :for="'dotsOptionsType-' + type">{{ t(type) }}</label>
+            </div>
+            <div class="w-full overflow-hidden">
+              <div class="flex w-full flex-col flex-wrap gap-4 sm:flex-row sm:gap-x-8">
+                <!-- Data to encode area -->
+                <div class="w-full overflow-hidden sm:grow">
+                  <!-- Header row: Label + Mode Toggles + Batch Options -->
+                  <div class="mb-2 flex items-center gap-4">
+                    <label for="data">{{ t('Data to encode') }}</label>
+                    <!-- Mode Toggle Buttons -->
+                    <div class="flex grow items-center gap-2">
+                      <button
+                        :class="[
+                          'secondary-button',
+                          { 'opacity-50': exportMode === ExportMode.Single } // Dim if active
+                        ]"
+                        @click="exportMode = ExportMode.Single"
+                      >
+                        {{ $t('Single export') }}
+                      </button>
+                      <button
+                        :class="[
+                          'secondary-button',
+                          { 'opacity-50': exportMode === ExportMode.Batch } // Dim if active
+                        ]"
+                        @click="exportMode = ExportMode.Batch"
+                      >
+                        {{ $t('Batch export') }}
+                      </button>
+                      <!-- Batch specific options -->
+                      <div
+                        v-if="exportMode === ExportMode.Batch"
+                        :class="[
+                          'flex grow items-center justify-end gap-2',
+                          dataStringsFromCsv.length > 0 && 'opacity-80'
+                        ]"
+                      ></div>
+                    </div>
                   </div>
-                </fieldset>
-                <fieldset class="flex-1" role="radio" tabindex="0">
-                  <legend>{{ t('Corners Square type') }}</legend>
-                  <div class="radio" v-for="type in ['dot', 'square', 'extra-rounded']" :key="type">
-                    <input
-                      :id="'cornersSquareOptionsType-' + type"
-                      type="radio"
-                      v-model="cornersSquareOptionsType"
-                      :value="type"
-                    />
-                    <label :for="'cornersSquareOptionsType-' + type">{{ t(type) }}</label>
-                  </div>
-                </fieldset>
-                <fieldset class="flex-1" role="radio" tabindex="0">
-                  <legend>{{ t('Corners Dot type') }}</legend>
-                  <div class="radio" v-for="type in ['dot', 'square']" :key="type">
-                    <input
-                      :id="'cornersDotOptionsType-' + type"
-                      type="radio"
-                      v-model="cornersDotOptionsType"
-                      :value="type"
-                    />
-                    <label :for="'cornersDotOptionsType-' + type">{{ t(type) }}</label>
-                  </div>
-                </fieldset>
-                <fieldset class="flex-1" role="radio" tabindex="0">
-                  <div class="flex flex-row items-center gap-2">
-                    <legend>{{ t('Error correction level') }}</legend>
-                    <a
-                      href="https://docs.uniqode.com/en/articles/7219782-what-is-the-recommended-error-correction-level-for-printing-a-qr-code"
-                      target="_blank"
-                      class="icon-button flex flex-row items-center"
-                      :aria-label="t('What is error correction level?')"
+                  <!-- Single Mode Input -->
+                  <div v-if="exportMode === ExportMode.Single" class="flex flex-col items-start">
+                    <textarea
+                      id="data"
+                      v-model="data"
+                      class="mr-2 grow text-input"
+                      :placeholder="t('data to encode e.g. a URL or a string')"
+                    ></textarea>
+                    <button
+                      @click="openDataModal"
+                      aria-haspopup="dialog"
+                      :aria-expanded="isDataModalVisible"
+                      class="secondary-button mt-2 flex items-center gap-1 self-end"
+                      :aria-label="t('Open data type generator')"
                     >
+                      <span>{{ t('Data templates') }}</span>
                       <svg
-                        class="me-1"
                         xmlns="http://www.w3.org/2000/svg"
                         width="16"
                         height="16"
                         viewBox="0 0 24 24"
                       >
+                        <!-- Icon from Tabler Icons by Paweł Kuna - https://github.com/tabler/tabler-icons/blob/master/LICENSE -->
                         <path
-                          fill="#888888"
-                          d="M11.95 18q.525 0 .888-.363t.362-.887t-.362-.888t-.888-.362t-.887.363t-.363.887t.363.888t.887.362m.05 4q-2.075 0-3.9-.788t-3.175-2.137T2.788 15.9T2 12t.788-3.9t2.137-3.175T8.1 2.788T12 2t3.9.788t3.175 2.137T21.213 8.1T22 12t-.788 3.9t-2.137 3.175t-3.175 2.138T12 22m0-2q3.35 0 5.675-2.325T20 12t-2.325-5.675T12 4T6.325 6.325T4 12t2.325 5.675T12 20m.1-12.3q.625 0 1.088.4t.462 1q0 .55-.337.975t-.763.8q-.575.5-1.012 1.1t-.438 1.35q0 .35.263.588t.612.237q.375 0 .638-.25t.337-.625q.1-.525.45-.937t.75-.788q.575-.55.988-1.2t.412-1.45q0-1.275-1.037-2.087T12.1 6q-.95 0-1.812.4T8.975 7.625q-.175.3-.112.638t.337.512q.35.2.725.125t.625-.425q.275-.375.688-.575t.862-.2"
+                          fill="none"
+                          stroke="#888888"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="m7 7l5 5l-5 5m6-10l5 5l-5 5"
                         />
                       </svg>
-                    </a>
+                    </button>
                   </div>
-                  <div v-for="level in errorCorrectionLevels" class="radio" :key="level">
-                    <input
-                      :id="'errorCorrectionLevel-' + level"
-                      type="radio"
-                      v-model="errorCorrectionLevel"
-                      :value="level"
-                      :aria-describedby="
-                        level === recommendedErrorCorrectionLevel ? 'recommended-text' : undefined
-                      "
-                    />
-                    <div class="flex items-center gap-2">
-                      <label :for="'errorCorrectionLevel-' + level">{{
-                        t(ERROR_CORRECTION_LEVEL_LABELS[level])
-                      }}</label>
-                      <span
-                        v-if="level === recommendedErrorCorrectionLevel"
-                        class="inline-flex items-center rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-800 dark:bg-zinc-700 dark:text-zinc-200"
+                  <template v-if="exportMode === ExportMode.Batch">
+                    <template v-if="!inputFileForBatchEncoding">
+                      <BatchExportFieldsGuide />
+                      <button
+                        class="!ms-0 mt-4 flex items-center justify-center rounded-lg border-2 border-dashed border-gray-300 p-1 py-4 text-center text-input"
+                        :aria-label="t('Choose a CSV file containing data to encode')"
+                        @click="fileInput?.click()"
+                        @keyup.enter="fileInput?.click()"
+                        @keyup.space="fileInput?.click()"
+                        @dragover.prevent
+                        @drop.prevent="onBatchInputFileUpload"
                       >
-                        {{ t('Suggested') }}
-                      </span>
+                        <div class="flex flex-col items-center">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="48"
+                            height="48"
+                            viewBox="0 0 24 24"
+                            class="mb-2 text-gray-400"
+                          >
+                            <path
+                              fill="currentColor"
+                              d="M11 16V7.85l-2.6 2.6L7 9l5-5l5 5l-1.4 1.45l-2.6-2.6V16h-2Zm-5 4q-.825 0-1.413-.588T4 18v-3h2v3h12v-3h2v3q0 .825-.588 1.413T18 20H6Z"
+                            />
+                          </svg>
+                          <p aria-hidden="true" class="text-sm">
+                            {{ $t('Upload a CSV file') }}
+                          </p>
+                        </div>
+                        <input
+                          ref="fileInput"
+                          type="file"
+                          accept=".csv,.txt"
+                          class="hidden"
+                          @change="onBatchInputFileUpload"
+                        />
+                      </button>
+                    </template>
+                    <div v-else-if="isValidCsv" class="p-4 text-center">
+                      <div v-if="isBatchExportSuccess">
+                        <p>{{ $t('QR codes have been successfully exported.') }}</p>
+                        <button class="button mt-4" @click="inputFileForBatchEncoding = null">
+                          {{ $t('Start new batch export') }}
+                        </button>
+                      </div>
+                      <div v-else-if="currentExportedQrCodeIndex == null && !isExportingBatchQRs">
+                        <div v-if="dataStringsFromCsv.length > 0" class="mt-4">
+                          <div
+                            class="flex flex-col gap-2 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800"
+                          >
+                            <div v-if="previewRow && 'firstName' in previewRow">
+                              <VCardPreview :vCard="previewRow" />
+                            </div>
+                            <div v-else>
+                              <div class="space-y-2">
+                                <div class="flex flex-col gap-1">
+                                  <span
+                                    class="text-xs font-medium text-gray-500 dark:text-gray-400"
+                                    >{{ $t('Data:') }}</span
+                                  >
+                                  <code
+                                    class="rounded bg-white px-2 py-1 font-mono text-sm dark:bg-gray-900"
+                                  >
+                                    {{ dataStringsFromCsv[previewRowIndex] }}
+                                  </code>
+                                </div>
+                                <div v-if="fileNamesFromCsv[previewRowIndex]">
+                                  <span
+                                    class="text-xs font-medium text-gray-500 dark:text-gray-400"
+                                    >{{ $t('File name:') }}</span
+                                  >
+                                  <code
+                                    class="rounded bg-white px-2 py-1 font-mono text-sm dark:bg-gray-900"
+                                  >
+                                    {{ fileNamesFromCsv[previewRowIndex] }}
+                                  </code>
+                                </div>
+                              </div>
+                            </div>
+                            <div class="mt-2 flex items-center justify-between">
+                              <button
+                                class="rounded bg-gray-200 px-2 py-1 text-gray-700 disabled:opacity-50 dark:bg-gray-700 dark:text-gray-200 dark:disabled:opacity-60"
+                                :disabled="previewRowIndex === 0"
+                                @click="previewRowIndex--"
+                              >
+                                &lt;
+                              </button>
+                              <span class="text-xs text-gray-500 dark:text-gray-400"
+                                >{{ previewRowIndex + 1 }} / {{ dataStringsFromCsv.length }}</span
+                              >
+                              <button
+                                class="rounded bg-gray-200 px-2 py-1 text-gray-700 disabled:opacity-50 dark:bg-gray-700 dark:text-gray-200 dark:disabled:opacity-60"
+                                :disabled="previewRowIndex === dataStringsFromCsv.length - 1"
+                                @click="previewRowIndex++"
+                              >
+                                &gt;
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div v-else-if="currentExportedQrCodeIndex != null">
+                        <p>{{ $t('Creating QR codes... This may take a while.') }}</p>
+                        <p>
+                          {{
+                            $t('{index} / {count} QR codes have been created.', {
+                              index: currentExportedQrCodeIndex + 1,
+                              count: dataStringsFromCsv.length
+                            })
+                          }}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                </fieldset>
+                    <div v-else class="p-4 text-center text-red-500">
+                      <p>{{ $t('Invalid CSV') }}</p>
+                    </div>
+                  </template>
+                </div>
               </div>
-            </section>
-          </AccordionContent>
-        </AccordionItem>
-      </Accordion>
+            </div>
+            <div class="w-full">
+              <div class="mb-2 flex flex-row items-center gap-2">
+                <label for="image-url">
+                  {{ t('Logo image URL') }}
+                </label>
+                <button class="icon-button flex flex-row items-center" @click="uploadImage">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                  >
+                    <g
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                    >
+                      <path d="M14 3v4a1 1 0 0 0 1 1h4" />
+                      <path
+                        d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2zm-5-10v6"
+                      />
+                      <path d="M9.5 13.5L12 11l2.5 2.5" />
+                    </g>
+                  </svg>
+                  <span>{{ t('Upload image') }}</span>
+                </button>
+              </div>
+              <textarea
+                name="image-url"
+                class="text-input"
+                id="image-url"
+                rows="1"
+                :placeholder="t('Logo image URL')"
+                v-model="image"
+              />
+            </div>
+            <div class="flex flex-row items-center gap-2">
+              <label for="with-background">
+                {{ t('With background') }}
+              </label>
+              <input id="with-background" type="checkbox" v-model="includeBackground" />
+            </div>
+            <div id="color-settings" :class="'flex w-full flex-row flex-wrap gap-4'">
+              <div
+                :inert="!includeBackground"
+                :class="[!includeBackground && 'opacity-30', 'flex flex-row items-center gap-2']"
+              >
+                <label for="background-color">{{ t('Background color') }}</label>
+                <input
+                  id="background-color"
+                  type="color"
+                  class="color-input"
+                  v-model="styleBackground"
+                />
+              </div>
+              <div class="flex flex-row items-center gap-2">
+                <label for="dots-color">{{ t('Dots color') }}</label>
+                <input
+                  id="dots-color"
+                  type="color"
+                  class="color-input"
+                  v-model="dotsOptionsColor"
+                />
+              </div>
+              <div class="flex flex-row items-center gap-2">
+                <label for="corners-square-color">{{ t('Corners Square color') }}</label>
+                <input
+                  id="corners-square-color"
+                  type="color"
+                  class="color-input"
+                  v-model="cornersSquareOptionsColor"
+                />
+              </div>
+              <div class="flex flex-row items-center gap-2">
+                <label for="corners-dot-color">{{ t('Corners Dot color') }}</label>
+                <input
+                  id="corners-dot-color"
+                  type="color"
+                  class="color-input"
+                  v-model="cornersDotOptionsColor"
+                />
+              </div>
+            </div>
+            <div class="flex w-full flex-col gap-4 sm:flex-row sm:gap-8">
+              <div class="w-full sm:w-1/3">
+                <label for="width">
+                  {{ t('Width (px)') }}
+                </label>
+                <input
+                  class="text-input"
+                  id="width"
+                  type="number"
+                  placeholder="width in pixels"
+                  v-model="width"
+                />
+              </div>
+              <div class="w-full sm:w-1/3">
+                <label for="height">
+                  {{ t('Height (px)') }}
+                </label>
+                <input
+                  class="text-input"
+                  id="height"
+                  type="number"
+                  placeholder="height in pixels"
+                  v-model="height"
+                />
+              </div>
+              <div class="w-full sm:w-1/3">
+                <label for="border-radius">
+                  {{ t('Border radius (px)') }}
+                </label>
+                <input
+                  class="text-input"
+                  id="border-radius"
+                  type="number"
+                  placeholder="24"
+                  v-model="styleBorderRadius"
+                />
+              </div>
+            </div>
+            <div class="flex w-full flex-col gap-4 sm:flex-row sm:gap-8">
+              <div class="w-full sm:w-1/2">
+                <label for="margin">
+                  {{ t('Margin (px)') }}
+                </label>
+                <input
+                  class="text-input"
+                  id="margin"
+                  type="number"
+                  placeholder="0"
+                  v-model="margin"
+                />
+              </div>
+              <div class="w-full sm:w-1/2">
+                <label for="image-margin">
+                  {{ t('Image margin (px)') }}
+                </label>
+                <input
+                  class="text-input"
+                  id="image-margin"
+                  type="number"
+                  placeholder="0"
+                  v-model="imageMargin"
+                />
+              </div>
+            </div>
+            <div
+              id="dots-squares-settings"
+              class="mb-4 flex w-full flex-col flex-wrap gap-6 md:flex-row"
+            >
+              <fieldset class="flex-1" role="radio" tabindex="0">
+                <legend>{{ t('Dots type') }}</legend>
+                <div
+                  class="radio"
+                  v-for="type in [
+                    'dots',
+                    'rounded',
+                    'classy',
+                    'classy-rounded',
+                    'square',
+                    'extra-rounded'
+                  ]"
+                  :key="type"
+                >
+                  <input
+                    :id="'dotsOptionsType-' + type"
+                    type="radio"
+                    v-model="dotsOptionsType"
+                    :value="type"
+                  />
+                  <label :for="'dotsOptionsType-' + type">{{ t(type) }}</label>
+                </div>
+              </fieldset>
+              <fieldset class="flex-1" role="radio" tabindex="0">
+                <legend>{{ t('Corners Square type') }}</legend>
+                <div class="radio" v-for="type in ['dot', 'square', 'extra-rounded']" :key="type">
+                  <input
+                    :id="'cornersSquareOptionsType-' + type"
+                    type="radio"
+                    v-model="cornersSquareOptionsType"
+                    :value="type"
+                  />
+                  <label :for="'cornersSquareOptionsType-' + type">{{ t(type) }}</label>
+                </div>
+              </fieldset>
+              <fieldset class="flex-1" role="radio" tabindex="0">
+                <legend>{{ t('Corners Dot type') }}</legend>
+                <div class="radio" v-for="type in ['dot', 'square']" :key="type">
+                  <input
+                    :id="'cornersDotOptionsType-' + type"
+                    type="radio"
+                    v-model="cornersDotOptionsType"
+                    :value="type"
+                  />
+                  <label :for="'cornersDotOptionsType-' + type">{{ t(type) }}</label>
+                </div>
+              </fieldset>
+              <fieldset class="flex-1" role="radio" tabindex="0">
+                <div class="flex flex-row items-center gap-2">
+                  <legend>{{ t('Error correction level') }}</legend>
+                  <a
+                    href="https://docs.uniqode.com/en/articles/7219782-what-is-the-recommended-error-correction-level-for-printing-a-qr-code"
+                    target="_blank"
+                    class="icon-button flex flex-row items-center"
+                    :aria-label="t('What is error correction level?')"
+                  >
+                    <svg
+                      class="me-1"
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        fill="#888888"
+                        d="M11.95 18q.525 0 .888-.363t.362-.887t-.362-.888t-.888-.362t-.887.363t-.363.887t.363.888t.887.362m.05 4q-2.075 0-3.9-.788t-3.175-2.137T2.788 15.9T2 12t.788-3.9t2.137-3.175T8.1 2.788T12 2t3.9.788t3.175 2.137T21.213 8.1T22 12t-.788 3.9t-2.137 3.175t-3.175 2.138T12 22m0-2q3.35 0 5.675-2.325T20 12t-2.325-5.675T12 4T6.325 6.325T4 12t2.325 5.675T12 20m.1-12.3q.625 0 1.088.4t.462 1q0 .55-.337.975t-.763.8q-.575.5-1.012 1.1t-.438 1.35q0 .35.263.588t.612.237q.375 0 .638-.25t.337-.625q.1-.525.45-.937t.75-.788q.575-.55.988-1.2t.412-1.45q0-1.275-1.037-2.087T12.1 6q-.95 0-1.812.4T8.975 7.625q-.175.3-.112.638t.337.512q.35.2.725.125t.625-.425q.275-.375.688-.575t.862-.2"
+                      />
+                    </svg>
+                  </a>
+                </div>
+                <div v-for="level in errorCorrectionLevels" class="radio" :key="level">
+                  <input
+                    :id="'errorCorrectionLevel-' + level"
+                    type="radio"
+                    v-model="errorCorrectionLevel"
+                    :value="level"
+                    :aria-describedby="
+                      level === recommendedErrorCorrectionLevel ? 'recommended-text' : undefined
+                    "
+                  />
+                  <div class="flex items-center gap-2">
+                    <label :for="'errorCorrectionLevel-' + level">{{
+                      t(ERROR_CORRECTION_LEVEL_LABELS[level])
+                    }}</label>
+                    <span
+                      v-if="level === recommendedErrorCorrectionLevel"
+                      class="inline-flex items-center rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-800 dark:bg-zinc-700 dark:text-zinc-200"
+                    >
+                      {{ t('Suggested') }}
+                    </span>
+                  </div>
+                </div>
+              </fieldset>
+            </div>
+          </section>
+        </div>
+      </div>
     </div>
   </div>
 

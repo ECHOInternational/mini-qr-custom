@@ -2,7 +2,6 @@
 import LanguageSelector from '@/components/LanguageSelector.vue'
 import MobileMenu from '@/components/MobileMenu.vue'
 import QRCodeCreate from '@/components/QRCodeCreate.vue'
-import AppFooter from '@/components/AppFooter.vue'
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import forceLightMode from '@/utils/forceLightMode'
@@ -104,7 +103,6 @@ onUnmounted(() => {
         <QRCodeCreate :initial-data="capturedData" />
       </div>
     </div>
-    <AppFooter />
   </main>
 </template>
 
