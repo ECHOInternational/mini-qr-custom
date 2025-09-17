@@ -161,6 +161,20 @@ function uploadImage() {
 }
 // #endregion
 
+//#region /* Brand colors configuration */
+const brandColors = [
+  { name: 'Desaturated Emerald', color: '#006F5E' },
+  { name: 'Ivory White', color: '#EFE6D1' },
+  { name: 'Warm Sandstone', color: '#9DA441' },
+  { name: 'Slate Blue-Gray', color: '#3C434C' },
+  { name: 'Smokey Steel Blue', color: '#6B8C9E' },
+  { name: 'Muted Coral', color: '#E27D60' },
+  { name: 'Dusty Olive', color: '#A3A380' },
+  { name: 'White', color: '#FFFFFF' },
+  { name: 'Black', color: '#000000' }
+]
+//#endregion
+
 //#region /* Error correction level */
 const errorCorrectionLevels: ErrorCorrectionLevel[] = ['L', 'M', 'Q', 'H']
 const errorCorrectionLevel = ref<ErrorCorrectionLevel>('Q')
@@ -1075,42 +1089,114 @@ const mainDivPaddingStyle = computed(() => {
             <div id="color-settings" :class="'flex w-full flex-row flex-wrap gap-4'">
               <div
                 :inert="!includeBackground"
-                :class="[!includeBackground && 'opacity-30', 'flex flex-row items-center gap-2']"
+                :class="[!includeBackground && 'opacity-30', 'flex flex-col gap-2']"
               >
                 <label for="background-color">{{ t('Background color') }}</label>
-                <input
-                  id="background-color"
-                  type="color"
-                  class="color-input"
-                  v-model="styleBackground"
-                />
+                <div class="flex flex-row items-center gap-2">
+                  <!-- Brand color presets -->
+                  <div class="flex gap-1">
+                    <button
+                      v-for="brandColor in brandColors"
+                      :key="brandColor.color"
+                      @click="styleBackground = brandColor.color"
+                      :title="brandColor.name"
+                      :style="{ backgroundColor: brandColor.color }"
+                      class="size-6 cursor-pointer rounded border border-gray-300 transition-transform hover:scale-110"
+                      :class="{
+                        'ring-2 ring-blue-500': styleBackground === brandColor.color,
+                        'border-gray-400': brandColor.color === '#FFFFFF'
+                      }"
+                    />
+                  </div>
+                  <!-- Native color picker -->
+                  <input
+                    id="background-color"
+                    type="color"
+                    class="color-input"
+                    v-model="styleBackground"
+                  />
+                </div>
               </div>
-              <div class="flex flex-row items-center gap-2">
+              <div class="flex flex-col gap-2">
                 <label for="dots-color">{{ t('Dots color') }}</label>
-                <input
-                  id="dots-color"
-                  type="color"
-                  class="color-input"
-                  v-model="dotsOptionsColor"
-                />
+                <div class="flex flex-row items-center gap-2">
+                  <!-- Brand color presets -->
+                  <div class="flex gap-1">
+                    <button
+                      v-for="brandColor in brandColors"
+                      :key="brandColor.color"
+                      @click="dotsOptionsColor = brandColor.color"
+                      :title="brandColor.name"
+                      :style="{ backgroundColor: brandColor.color }"
+                      class="size-6 cursor-pointer rounded border border-gray-300 transition-transform hover:scale-110"
+                      :class="{
+                        'ring-2 ring-blue-500': dotsOptionsColor === brandColor.color,
+                        'border-gray-400': brandColor.color === '#FFFFFF'
+                      }"
+                    />
+                  </div>
+                  <!-- Native color picker -->
+                  <input
+                    id="dots-color"
+                    type="color"
+                    class="color-input"
+                    v-model="dotsOptionsColor"
+                  />
+                </div>
               </div>
-              <div class="flex flex-row items-center gap-2">
+              <div class="flex flex-col gap-2">
                 <label for="corners-square-color">{{ t('Corners Square color') }}</label>
-                <input
-                  id="corners-square-color"
-                  type="color"
-                  class="color-input"
-                  v-model="cornersSquareOptionsColor"
-                />
+                <div class="flex flex-row items-center gap-2">
+                  <!-- Brand color presets -->
+                  <div class="flex gap-1">
+                    <button
+                      v-for="brandColor in brandColors"
+                      :key="brandColor.color"
+                      @click="cornersSquareOptionsColor = brandColor.color"
+                      :title="brandColor.name"
+                      :style="{ backgroundColor: brandColor.color }"
+                      class="size-6 cursor-pointer rounded border border-gray-300 transition-transform hover:scale-110"
+                      :class="{
+                        'ring-2 ring-blue-500': cornersSquareOptionsColor === brandColor.color,
+                        'border-gray-400': brandColor.color === '#FFFFFF'
+                      }"
+                    />
+                  </div>
+                  <!-- Native color picker -->
+                  <input
+                    id="corners-square-color"
+                    type="color"
+                    class="color-input"
+                    v-model="cornersSquareOptionsColor"
+                  />
+                </div>
               </div>
-              <div class="flex flex-row items-center gap-2">
+              <div class="flex flex-col gap-2">
                 <label for="corners-dot-color">{{ t('Corners Dot color') }}</label>
-                <input
-                  id="corners-dot-color"
-                  type="color"
-                  class="color-input"
-                  v-model="cornersDotOptionsColor"
-                />
+                <div class="flex flex-row items-center gap-2">
+                  <!-- Brand color presets -->
+                  <div class="flex gap-1">
+                    <button
+                      v-for="brandColor in brandColors"
+                      :key="brandColor.color"
+                      @click="cornersDotOptionsColor = brandColor.color"
+                      :title="brandColor.name"
+                      :style="{ backgroundColor: brandColor.color }"
+                      class="size-6 cursor-pointer rounded border border-gray-300 transition-transform hover:scale-110"
+                      :class="{
+                        'ring-2 ring-blue-500': cornersDotOptionsColor === brandColor.color,
+                        'border-gray-400': brandColor.color === '#FFFFFF'
+                      }"
+                    />
+                  </div>
+                  <!-- Native color picker -->
+                  <input
+                    id="corners-dot-color"
+                    type="color"
+                    class="color-input"
+                    v-model="cornersDotOptionsColor"
+                  />
+                </div>
               </div>
             </div>
             <div class="flex w-full flex-col gap-4 sm:flex-row sm:gap-8">
