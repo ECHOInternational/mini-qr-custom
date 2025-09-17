@@ -3,19 +3,16 @@ import { generateVCardData } from './dataEncoding'
 
 export interface BatchProcessingResult {
   urls: string[]
-  frameTexts: string[]
   fileNames: string[]
-  hasCustomFrameText: boolean
 }
 
 /**
  * Processes parsed CSV data for batch QR code generation
  * @param csvData Array of parsed CSV data
- * @returns BatchProcessingResult with aligned arrays for urls, frameTexts, and fileNames
+ * @returns BatchProcessingResult with aligned arrays for urls and fileNames
  */
 export function processCsvDataForBatch(csvData: CSVData[]): BatchProcessingResult {
   const urls: string[] = []
-  const frameTexts: string[] = []
   const fileNames: string[] = []
 
   csvData.forEach((row) => {
@@ -47,28 +44,20 @@ export function processCsvDataForBatch(csvData: CSVData[]): BatchProcessingResul
       urls.push(row.url)
     }
 
-    // Always push frameText to maintain array alignment (empty string if not provided)
-    frameTexts.push(row.frameText || '')
-
     // Always push fileName to maintain array alignment (empty string if not provided)
     fileNames.push(row.fileName || '')
   })
 
-  // Check if any non-empty frame text exists
-  const hasCustomFrameText = frameTexts.some((text) => text && text.trim() !== '')
-
   return {
     urls,
-    frameTexts,
-    fileNames,
-    hasCustomFrameText
+    fileNames
   }
 }
 
 /**
- * Generates a filename for batch export based on priority: fileName > frameText > generated from data
+ * Generates a filename for batch export based on priority: fileName > generated from data
  * @param dataString The data string (URL or vCard)
- * @param frameText The frame text
+ * @param frameText Unused parameter (kept for compatibility)
  * @param customFileName The custom filename from CSV
  * @param index The index of the current item
  * @param usedFilenames Set of already used filenames to avoid duplicates
@@ -83,11 +72,9 @@ export function generateBatchExportFilename(
 ): string {
   let fileName = ''
 
-  // Priority: custom fileName > frameText > generated name
+  // Priority: custom fileName > generated name
   if (customFileName) {
     fileName = customFileName
-  } else if (frameText) {
-    fileName = frameText
   } else {
     // For vCard data, use firstName_lastName
     if (dataString.startsWith('BEGIN:VCARD')) {

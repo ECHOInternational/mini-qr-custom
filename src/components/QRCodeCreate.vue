@@ -2,7 +2,6 @@
 import BatchExportFieldsGuide from '@/components/BatchExportFieldsGuide.vue'
 import CopyImageModal from '@/components/CopyImageModal.vue'
 import DataTemplatesModal from '@/components/DataTemplatesModal.vue'
-import QRCodeFrame from '@/components/QRCodeFrame.vue'
 import StyledQRCode from '@/components/StyledQRCode.vue'
 import {
   Accordion,
@@ -27,7 +26,6 @@ import { parseCSV, validateCSVData } from '@/utils/csv'
 import { processCsvDataForBatch, generateBatchExportFilename } from '@/utils/csvBatchProcessing'
 import { getNumericCSSValue } from '@/utils/formatting'
 import { allQrCodePresets, defaultPreset, type Preset } from '@/utils/qrCodePresets'
-import { allFramePresets, defaultFramePreset, type FramePreset } from '@/utils/framePresets'
 import { useMediaQuery } from '@vueuse/core'
 import JSZip from 'jszip'
 import {
@@ -40,15 +38,6 @@ import {
 import { computed, onMounted, ref, watch, nextTick } from 'vue'
 import 'vue-i18n'
 import { useI18n } from 'vue-i18n'
-
-interface FrameStyle {
-  textColor: string
-  backgroundColor: string
-  borderColor: string
-  borderWidth: string
-  borderRadius: string
-  padding: string
-}
 
 const props = defineProps<{
   initialData?: string
@@ -273,66 +262,6 @@ const recommendedErrorCorrectionLevel = computed<ErrorCorrectionLevel | null>(()
 })
 //#endregion
 
-//#region /* Frame settings */
-const DEFAULT_FRAME_TEXT = 'Scan for more info'
-const frameText = ref(DEFAULT_FRAME_TEXT)
-const frameTextPosition = ref<'top' | 'bottom' | 'left' | 'right'>('bottom')
-const showFrame = ref(false)
-const frameStyle = ref<FrameStyle>({
-  textColor: '#000000',
-  backgroundColor: '#ffffff',
-  borderColor: '#000000',
-  borderWidth: '1px',
-  borderRadius: '8px',
-  padding: '16px'
-})
-const selectedFramePresetKey = ref<string>(defaultFramePreset.name)
-const lastCustomLoadedFramePreset = ref<FramePreset>()
-const CUSTOM_LOADED_FRAME_PRESET_KEYS = [
-  LAST_LOADED_LOCALLY_PRESET_KEY,
-  LOADED_FROM_FILE_PRESET_KEY
-]
-const allFramePresetOptions = computed(() => {
-  const options = lastCustomLoadedFramePreset.value
-    ? [lastCustomLoadedFramePreset.value, ...allFramePresets]
-    : allFramePresets
-  return options.map((preset) => ({ value: preset.name, label: t(preset.name) }))
-})
-function applyFramePreset(preset: FramePreset) {
-  if (preset.style) {
-    frameStyle.value = { ...frameStyle.value, ...preset.style }
-  }
-  if (preset.text) frameText.value = preset.text
-  if (preset.position) frameTextPosition.value = preset.position
-}
-watch(
-  selectedFramePresetKey,
-  (newKey, prevKey) => {
-    if (newKey === prevKey || !newKey) return
-
-    if (
-      import.meta.env.VITE_DISABLE_LOCAL_STORAGE !== 'true' &&
-      CUSTOM_LOADED_FRAME_PRESET_KEYS.includes(newKey) &&
-      lastCustomLoadedFramePreset.value
-    ) {
-      applyFramePreset(lastCustomLoadedFramePreset.value)
-      return
-    }
-
-    const preset = allFramePresets.find((p) => p.name === newKey)
-    if (preset) {
-      applyFramePreset(preset)
-    }
-  },
-  { immediate: true }
-)
-const frameSettings = computed(() => ({
-  text: frameText.value,
-  position: frameTextPosition.value,
-  style: frameStyle.value
-}))
-//#endregion
-
 //#region /* General Export - download qr code and copy to clipboard */
 const isExportButtonDisabled = computed(() => {
   if (exportMode.value === ExportMode.Single) {
@@ -345,34 +274,11 @@ const PREVIEW_QRCODE_DIM_UNIT = 200
 
 /**
  * Calculates the dimensions for QR code export
- * When frame is enabled (showFrame = true), dimensions are calculated from the actual rendered element
- * to include the frame's size. Otherwise, uses the configured width and height values.
  */
 function getExportDimensions() {
-  if (!showFrame.value) {
-    return {
-      width: width.value,
-      height: height.value
-    }
-  }
-  const el = document.getElementById('element-to-export')
-  if (!el) {
-    return {
-      width: width.value,
-      height: height.value
-    }
-  }
-
-  // Calculate the scale factor based on the preview size
-  const scaleFactor = width.value / PREVIEW_QRCODE_DIM_UNIT
-
-  const elWidth = el.offsetWidth
-  const elHeight = el.offsetHeight
-
-  // Get the actual dimensions including the frame and apply the scale factor
   return {
-    width: elWidth * scaleFactor,
-    height: elHeight * scaleFactor
+    width: width.value,
+    height: height.value
   }
 }
 
@@ -457,18 +363,12 @@ interface QRCodeConfig {
     borderRadius: string
     background?: string
   }
-  frame?: {
-    text: string
-    position: 'top' | 'bottom' | 'left' | 'right'
-    style: FrameStyle
-  } | null
 }
 
 function createQrConfig(): QRCodeConfig {
   return {
     props: qrCodeProps.value,
-    style: style.value,
-    frame: showFrame.value ? frameSettings.value : null
+    style: style.value
   }
 }
 
@@ -494,7 +394,6 @@ function loadQRConfig(jsonString: string, key?: string) {
   const qrCodeConfig = JSON.parse(jsonString) as QRCodeConfig
   const qrCodeProps = qrCodeConfig.props
   const qrCodeStyle = qrCodeConfig.style
-  const frameConfig = qrCodeConfig.frame
 
   const preset = {
     ...qrCodeProps,
@@ -507,30 +406,7 @@ function loadQRConfig(jsonString: string, key?: string) {
     selectedPresetKey.value = key
   }
 
-  let framePreset: FramePreset | undefined
-
   selectedPreset.value = preset
-
-  if (frameConfig) {
-    showFrame.value = true
-    frameText.value = frameConfig.text || DEFAULT_FRAME_TEXT
-    frameTextPosition.value = frameConfig.position || 'bottom'
-    frameStyle.value = {
-      ...frameStyle.value,
-      ...frameConfig.style
-    }
-    framePreset = {
-      name: key || LAST_LOADED_LOCALLY_PRESET_KEY,
-      style: frameConfig.style,
-      text: frameConfig.text,
-      position: frameConfig.position
-    }
-  }
-
-  if (framePreset && key) {
-    lastCustomLoadedFramePreset.value = framePreset
-    selectedFramePresetKey.value = key
-  }
 }
 
 function loadQrConfigFromFile() {
@@ -555,7 +431,7 @@ function loadQrConfigFromFile() {
 }
 
 watch(
-  [qrCodeProps, style, showFrame, frameSettings],
+  [qrCodeProps, style],
   () => {
     saveQRConfigToLocalStorage()
   },
@@ -593,7 +469,6 @@ enum ExportMode {
 
 const exportMode = ref(ExportMode.Single)
 const dataStringsFromCsv = ref<string[]>([])
-const frameTextsFromCsv = ref<string[]>([])
 const fileNamesFromCsv = ref<string[]>([])
 
 const inputFileForBatchEncoding = ref<File | null>(null)
@@ -630,7 +505,6 @@ const resetData = () => {
   data.value = ''
   inputFileForBatchEncoding.value = null
   dataStringsFromCsv.value = []
-  frameTextsFromCsv.value = []
   fileNamesFromCsv.value = []
   isValidCsv.value = true
   resetBatchExportProgress()
@@ -687,9 +561,7 @@ const onBatchInputFileUpload = (event: Event) => {
     const batchResult = processCsvDataForBatch(result.data)
 
     dataStringsFromCsv.value = batchResult.urls
-    frameTextsFromCsv.value = batchResult.frameTexts
     fileNamesFromCsv.value = batchResult.fileNames
-    showFrame.value = batchResult.hasCustomFrameText
     isValidCsv.value = true
     previewRowIndex.value = 0 // Reset preview to first row on new upload
   }
@@ -707,17 +579,10 @@ const createZipFile = (
   format: 'png' | 'svg' | 'jpg'
 ) => {
   const dataString = dataStringsFromCsv.value[index]
-  const frameText = frameTextsFromCsv.value[index]
   const customFileName = fileNamesFromCsv.value[index]
 
   // Generate filename using the utility function
-  const fileName = generateBatchExportFilename(
-    dataString,
-    frameText,
-    customFileName,
-    index,
-    usedFilenames
-  )
+  const fileName = generateBatchExportFilename(dataString, '', customFileName, index, usedFilenames)
 
   // Sanitize filename to remove invalid characters
   const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9_-]/g, '_')
@@ -742,9 +607,7 @@ async function generateBatchQRCodes(format: 'png' | 'svg' | 'jpg') {
     for (let index = 0; index < dataStringsFromCsv.value.length; index++) {
       currentExportedQrCodeIndex.value = index
       const url = dataStringsFromCsv.value[index]
-      const currentFrameText = frameTextsFromCsv.value[index]
       data.value = url
-      frameText.value = currentFrameText
       await sleep(1000)
       let dataUrl: string = ''
       if (format === 'png') {
@@ -821,13 +684,6 @@ watch(
   { immediate: true } // Run on initial load
 )
 
-// Watch for changes that might affect the drawer trigger's height
-watch(showFrame, () => {
-  if (!isLarge.value) {
-    updateDrawerTriggerHeight()
-  }
-})
-
 const mainDivPaddingStyle = computed(() => {
   if (!isLarge.value && drawerTriggerHeight.value > 0) {
     return { paddingBottom: `${drawerTriggerHeight.value + BUFFER_PADDING}px` }
@@ -860,63 +716,29 @@ const mainDivPaddingStyle = computed(() => {
           <div class="mt-2 h-1 w-16 rounded-full bg-gray-300 dark:bg-gray-700"></div>
           <div :class="['w-full', '-my-8']">
             <div class="flex origin-center scale-[0.7] items-center justify-center md:scale-100">
-              <QRCodeFrame
-                v-if="showFrame"
-                :frame-text="frameText"
-                :text-position="frameTextPosition"
-                :frame-style="frameStyle"
-              >
-                <template #qr-code>
-                  <div id="qr-code-container" class="grid place-items-center">
-                    <div
-                      class="grid place-items-center overflow-hidden"
-                      :style="[
-                        style,
-                        {
-                          width: `${PREVIEW_QRCODE_DIM_UNIT}px`,
-                          height: `${PREVIEW_QRCODE_DIM_UNIT}px`
-                        }
-                      ]"
-                    >
-                      <StyledQRCode
-                        v-bind="{
-                          ...qrCodeProps,
-                          data: data?.length > 0 ? data : t('Have nice day!'),
-                          width: PREVIEW_QRCODE_DIM_UNIT,
-                          height: PREVIEW_QRCODE_DIM_UNIT
-                        }"
-                        role="img"
-                        aria-label="QR code"
-                      />
-                    </div>
-                  </div>
-                </template>
-              </QRCodeFrame>
-              <template v-else>
-                <div class="grid place-items-center">
-                  <div
-                    class="grid place-items-center overflow-hidden"
-                    :style="[
-                      style,
-                      {
-                        width: `${PREVIEW_QRCODE_DIM_UNIT}px`,
-                        height: `${PREVIEW_QRCODE_DIM_UNIT}px`
-                      }
-                    ]"
-                  >
-                    <StyledQRCode
-                      v-bind="{
-                        ...qrCodeProps,
-                        data: data?.length > 0 ? data : t('Have nice day!'),
-                        width: PREVIEW_QRCODE_DIM_UNIT,
-                        height: PREVIEW_QRCODE_DIM_UNIT
-                      }"
-                      role="img"
-                      aria-label="QR code preview"
-                    />
-                  </div>
+              <div class="grid place-items-center">
+                <div
+                  class="grid place-items-center overflow-hidden"
+                  :style="[
+                    style,
+                    {
+                      width: `${PREVIEW_QRCODE_DIM_UNIT}px`,
+                      height: `${PREVIEW_QRCODE_DIM_UNIT}px`
+                    }
+                  ]"
+                >
+                  <StyledQRCode
+                    v-bind="{
+                      ...qrCodeProps,
+                      data: data?.length > 0 ? data : t('Have nice day!'),
+                      width: PREVIEW_QRCODE_DIM_UNIT,
+                      height: PREVIEW_QRCODE_DIM_UNIT
+                    }"
+                    role="img"
+                    aria-label="QR code preview"
+                  />
                 </div>
-              </template>
+              </div>
             </div>
           </div>
           <div
@@ -955,48 +777,8 @@ const mainDivPaddingStyle = computed(() => {
     <!-- Main content -->
     <Teleport to="#main-content-container" v-if="mainContentContainer != null">
       <div id="main-content">
-        <div
-          id="qr-code-container"
-          :class="[
-            'grid origin-center place-items-center',
-            showFrame && ['left', 'right'].includes(frameTextPosition) && 'scale-[0.7] md:scale-100'
-          ]"
-        >
-          <div v-if="showFrame" id="element-to-export">
-            <QRCodeFrame
-              :frame-text="frameText"
-              :text-position="frameTextPosition"
-              :frame-style="frameStyle"
-            >
-              <template #qr-code>
-                <div id="qr-code-container" class="grid place-items-center">
-                  <div
-                    class="grid place-items-center overflow-hidden"
-                    :style="[
-                      style,
-                      {
-                        width: `${PREVIEW_QRCODE_DIM_UNIT}px`,
-                        height: `${PREVIEW_QRCODE_DIM_UNIT}px`
-                      }
-                    ]"
-                  >
-                    <StyledQRCode
-                      v-bind="{
-                        ...qrCodeProps,
-                        data: data?.length > 0 ? data : t('Have nice day!'),
-                        width: PREVIEW_QRCODE_DIM_UNIT,
-                        height: PREVIEW_QRCODE_DIM_UNIT
-                      }"
-                      role="img"
-                      aria-label="QR code"
-                    />
-                  </div>
-                </div>
-              </template>
-            </QRCodeFrame>
-          </div>
+        <div id="qr-code-container" class="grid origin-center place-items-center">
           <div
-            v-else
             id="element-to-export"
             class="grid place-items-center overflow-hidden"
             :style="[
@@ -1205,147 +987,6 @@ const mainDivPaddingStyle = computed(() => {
         class="flex w-full flex-col gap-4"
         :default-value="['qr-code-settings']"
       >
-        <AccordionItem value="frame-settings">
-          <AccordionTrigger
-            class="button !px-4 text-2xl text-gray-700 outline-none dark:text-gray-100 md:!px-6 lg:!px-8"
-            ><span class="flex flex-row items-center gap-2"
-              ><span id="frame-settings-title">{{ t('Frame settings') }}</span>
-              <span
-                class="rounded-full bg-white px-2 py-0.5 text-xs font-medium text-zinc-800 dark:bg-zinc-700 dark:text-zinc-200"
-              >
-                {{ t('New!') }}
-              </span></span
-            ></AccordionTrigger
-          >
-          <AccordionContent class="px-2 pb-8 pt-4">
-            <section class="space-y-4" aria-labelledby="frame-settings-title">
-              <div class="flex flex-row items-center gap-2">
-                <label for="show-frame">{{ t('Add frame') }}</label>
-                <input id="show-frame" type="checkbox" v-model="showFrame" />
-              </div>
-
-              <template v-if="showFrame">
-                <div class="flex flex-col sm:flex-row sm:items-center sm:gap-8">
-                  <div class="flex flex-col sm:w-1/2">
-                    <label>{{ t('Frame preset') }}</label>
-                    <Combobox
-                      :items="allFramePresetOptions"
-                      v-model:value="selectedFramePresetKey"
-                      :button-label="t('Select frame preset')"
-                    />
-                  </div>
-                </div>
-                <div class="flex flex-col">
-                  <label class="mb-2 block">{{ t('Text position') }}</label>
-                  <fieldset class="flex-1" role="radio" tabindex="0">
-                    <div
-                      class="radio"
-                      v-for="position in ['top', 'bottom', 'right', 'left']"
-                      :key="position"
-                    >
-                      <input
-                        :id="'frameTextPosition-' + position"
-                        type="radio"
-                        v-model="frameTextPosition"
-                        :value="position"
-                      />
-                      <label :for="'frameTextPosition-' + position">{{ t(position) }}</label>
-                    </div>
-                  </fieldset>
-                </div>
-
-                <div>
-                  <div class="mb-2 flex flex-row items-center gap-2">
-                    <label for="frame-text">{{ t('Frame text') }}</label>
-                  </div>
-                  <textarea
-                    name="frame-text"
-                    class="text-input"
-                    id="frame-text"
-                    rows="2"
-                    :placeholder="t('Scan for more info')"
-                    v-model="frameText"
-                  />
-                </div>
-
-                <div>
-                  <label class="mb-2 block">{{ t('Frame style') }}</label>
-                  <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div>
-                      <label for="frame-text-color" class="mb-1 block text-sm">{{
-                        t('Text color')
-                      }}</label>
-                      <input
-                        id="frame-text-color"
-                        type="color"
-                        class="color-input"
-                        v-model="frameStyle.textColor"
-                      />
-                    </div>
-                    <div>
-                      <label for="frame-bg-color" class="mb-1 block text-sm">{{
-                        t('Background color')
-                      }}</label>
-                      <input
-                        id="frame-bg-color"
-                        type="color"
-                        class="color-input"
-                        v-model="frameStyle.backgroundColor"
-                      />
-                    </div>
-                    <div>
-                      <label for="frame-border-color" class="mb-1 block text-sm">{{
-                        t('Border color')
-                      }}</label>
-                      <input
-                        id="frame-border-color"
-                        type="color"
-                        class="color-input"
-                        v-model="frameStyle.borderColor"
-                      />
-                    </div>
-                    <div>
-                      <label for="frame-border-width" class="mb-1 block text-sm">{{
-                        t('Border width')
-                      }}</label>
-                      <input
-                        id="frame-border-width"
-                        type="text"
-                        class="text-input"
-                        v-model="frameStyle.borderWidth"
-                        placeholder="1px"
-                      />
-                    </div>
-                    <div>
-                      <label for="frame-border-radius" class="mb-1 block text-sm">{{
-                        t('Border radius')
-                      }}</label>
-                      <input
-                        id="frame-border-radius"
-                        type="text"
-                        class="text-input"
-                        v-model="frameStyle.borderRadius"
-                        placeholder="8px"
-                      />
-                    </div>
-                    <div>
-                      <label for="frame-padding" class="mb-1 block text-sm">{{
-                        t('Padding')
-                      }}</label>
-                      <input
-                        id="frame-padding"
-                        type="text"
-                        class="text-input"
-                        v-model="frameStyle.padding"
-                        placeholder="16px"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </template>
-            </section>
-          </AccordionContent>
-        </AccordionItem>
         <AccordionItem value="qr-code-settings">
           <AccordionTrigger
             class="button !px-4 text-2xl text-gray-700 outline-none dark:text-gray-100 md:!px-6 lg:!px-8"
@@ -1500,17 +1141,6 @@ const mainDivPaddingStyle = computed(() => {
                                       class="rounded bg-white px-2 py-1 font-mono text-sm dark:bg-gray-900"
                                     >
                                       {{ dataStringsFromCsv[previewRowIndex] }}
-                                    </code>
-                                  </div>
-                                  <div v-if="frameTextsFromCsv[previewRowIndex]">
-                                    <span
-                                      class="text-xs font-medium text-gray-500 dark:text-gray-400"
-                                      >{{ $t('Frame text:') }}</span
-                                    >
-                                    <code
-                                      class="rounded bg-white px-2 py-1 font-mono text-sm dark:bg-gray-900"
-                                    >
-                                      {{ frameTextsFromCsv[previewRowIndex] }}
                                     </code>
                                   </div>
                                   <div v-if="fileNamesFromCsv[previewRowIndex]">
