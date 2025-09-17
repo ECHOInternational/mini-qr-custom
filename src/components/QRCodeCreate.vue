@@ -1,11 +1,9 @@
 <script setup lang="ts">
-import BatchExportFieldsGuide from '@/components/BatchExportFieldsGuide.vue'
 import CopyImageModal from '@/components/CopyImageModal.vue'
 import DataTemplatesModal from '@/components/DataTemplatesModal.vue'
 import StyledQRCode from '@/components/StyledQRCode.vue'
 import { Combobox } from '@/components/ui/Combobox'
 import { Drawer, DrawerContent, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer'
-import VCardPreview from '@/components/VCardPreview.vue'
 import {
   copyImageToClipboard,
   downloadJpgElement,
@@ -16,12 +14,9 @@ import {
   getSvgString
 } from '@/utils/convertToImage'
 import { IS_COPY_IMAGE_TO_CLIPBOARD_SUPPORTED } from '@/utils/clipboard'
-import { parseCSV, validateCSVData } from '@/utils/csv'
-import { processCsvDataForBatch, generateBatchExportFilename } from '@/utils/csvBatchProcessing'
 import { getNumericCSSValue } from '@/utils/formatting'
 import { allQrCodePresets, defaultPreset, type Preset } from '@/utils/qrCodePresets'
 import { useMediaQuery } from '@vueuse/core'
-import JSZip from 'jszip'
 import {
   type CornerDotType,
   type CornerSquareType,
@@ -390,10 +385,7 @@ function refreshCurrentPreset() {
 
 //#region /* General Export - download qr code and copy to clipboard */
 const isExportButtonDisabled = computed(() => {
-  if (exportMode.value === ExportMode.Single) {
-    return !data.value
-  }
-  return dataStringsFromCsv.value.length === 0
+  return !data.value
 })
 
 const PREVIEW_QRCODE_DIM_UNIT = 200
@@ -452,31 +444,27 @@ function copyQRToClipboard() {
 }
 
 /**
- * Downloads QR code in specified format, handling both single and batch exports
+ * Downloads QR code in specified format
  * @param format The format to download: 'png', 'svg', or 'jpg'
  */
 function downloadQRImage(format: 'png' | 'svg' | 'jpg') {
-  if (exportMode.value === ExportMode.Single) {
-    const formatConfig = {
-      png: { fn: downloadPngElement, filename: 'qr-code.png' },
-      svg: { fn: downloadSvgElement, filename: 'qr-code.svg' },
-      jpg: { fn: downloadJpgElement, filename: 'qr-code.jpg', extraOptions: { bgcolor: 'white' } }
-    }[format]
+  const formatConfig = {
+    png: { fn: downloadPngElement, filename: 'qr-code.png' },
+    svg: { fn: downloadSvgElement, filename: 'qr-code.svg' },
+    jpg: { fn: downloadJpgElement, filename: 'qr-code.jpg', extraOptions: { bgcolor: 'white' } }
+  }[format]
 
-    const el = document.getElementById('element-to-export')
-    if (!el) {
-      return
-    }
-
-    formatConfig.fn(
-      el,
-      formatConfig.filename,
-      { ...getExportDimensions(), ...formatConfig.extraOptions },
-      styledBorderRadiusFormatted.value
-    )
-  } else {
-    generateBatchQRCodes(format)
+  const el = document.getElementById('element-to-export')
+  if (!el) {
+    return
   }
+
+  formatConfig.fn(
+    el,
+    formatConfig.filename,
+    { ...getExportDimensions(), ...formatConfig.extraOptions },
+    styledBorderRadiusFormatted.value
+  )
 }
 onMounted(() => {
   // Set initial data if provided through props
@@ -485,186 +473,6 @@ onMounted(() => {
   }
 })
 //#endregion
-
-//#region /* Batch QR Code Generation */
-enum ExportMode {
-  Single = 'single',
-  Batch = 'batch'
-}
-
-const exportMode = ref(ExportMode.Single)
-const dataStringsFromCsv = ref<string[]>([])
-const fileNamesFromCsv = ref<string[]>([])
-
-const inputFileForBatchEncoding = ref<File | null>(null)
-const fileInput = ref<HTMLInputElement | null>(null)
-const isValidCsv = ref(true)
-
-const isExportingBatchQRs = ref(false)
-const isBatchExportSuccess = ref(false)
-const currentExportedQrCodeIndex = ref<number | null>(null)
-
-const parsedCsvResult = ref<{ data: any[] } | null>(null)
-const previewRowIndex = ref(0)
-const previewRow = computed(() => {
-  const idx = previewRowIndex.value
-  if (dataStringsFromCsv.value.length === 0) return null
-  if (idx < 0 || idx >= dataStringsFromCsv.value.length) return null
-  if (
-    parsedCsvResult.value &&
-    parsedCsvResult.value.data &&
-    parsedCsvResult.value.data.length > idx
-  ) {
-    return parsedCsvResult.value.data[idx]
-  }
-  return null
-})
-
-const resetBatchExportProgress = () => {
-  isExportingBatchQRs.value = false
-  currentExportedQrCodeIndex.value = null
-  usedFilenames.clear()
-}
-
-const resetData = () => {
-  data.value = ''
-  inputFileForBatchEncoding.value = null
-  dataStringsFromCsv.value = []
-  fileNamesFromCsv.value = []
-  isValidCsv.value = true
-  resetBatchExportProgress()
-  isBatchExportSuccess.value = false
-}
-
-watch(exportMode, () => {
-  resetData()
-})
-
-const getFileFromInputEvent = (event: InputEvent) => {
-  const inputElement = event.target as HTMLInputElement
-  if (inputElement.files && inputElement.files.length > 0) {
-    return inputElement.files[0]
-  }
-  return null
-}
-
-const onBatchInputFileUpload = (event: Event) => {
-  isBatchExportSuccess.value = false
-  let file: File | null = getFileFromInputEvent(event as InputEvent)
-
-  // If it is not input event, then it might be a drag and drop event
-  if (file == null) {
-    const dt = (event as DragEvent).dataTransfer
-    if (!dt || !dt.files || dt.files.length === 0) {
-      return
-    }
-    file = dt.files[0]
-  }
-
-  inputFileForBatchEncoding.value = file
-  const reader = new FileReader()
-  reader.onload = (e) => {
-    const content = e.target?.result
-    if (typeof content !== 'string') {
-      isValidCsv.value = false
-      return
-    }
-
-    const result = parseCSV(content)
-    parsedCsvResult.value = result
-    if (!result.isValid) {
-      isValidCsv.value = false
-      return
-    }
-
-    if (!validateCSVData(result.data)) {
-      isValidCsv.value = false
-      return
-    }
-
-    // Process CSV data using the utility function
-    const batchResult = processCsvDataForBatch(result.data)
-
-    dataStringsFromCsv.value = batchResult.urls
-    fileNamesFromCsv.value = batchResult.fileNames
-    isValidCsv.value = true
-    previewRowIndex.value = 0 // Reset preview to first row on new upload
-  }
-
-  reader.readAsText(file)
-}
-
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
-
-const usedFilenames = new Set() // zip folders cannot have duplicate filenames, otherwise they override each other
-const createZipFile = (
-  zip: typeof JSZip,
-  dataUrl: string,
-  index: number,
-  format: 'png' | 'svg' | 'jpg'
-) => {
-  const dataString = dataStringsFromCsv.value[index]
-  const customFileName = fileNamesFromCsv.value[index]
-
-  // Generate filename using the utility function
-  const fileName = generateBatchExportFilename(dataString, '', customFileName, index, usedFilenames)
-
-  // Sanitize filename to remove invalid characters
-  const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9_-]/g, '_')
-
-  if (format === 'png' || format === 'jpg') {
-    zip.file(`${sanitizedFileName}.${format}`, dataUrl.split(',')[1], { base64: true })
-  } else {
-    // For SVG, we don't need to split and use base64
-    zip.file(`${sanitizedFileName}.${format}`, dataUrl)
-  }
-}
-async function generateBatchQRCodes(format: 'png' | 'svg' | 'jpg') {
-  isExportingBatchQRs.value = true
-  const zip = new JSZip()
-  let numQrCodesCreated = 0
-  const el = document.getElementById('element-to-export')
-  if (!el) {
-    return
-  }
-
-  try {
-    for (let index = 0; index < dataStringsFromCsv.value.length; index++) {
-      currentExportedQrCodeIndex.value = index
-      const url = dataStringsFromCsv.value[index]
-      data.value = url
-      await sleep(1000)
-      let dataUrl: string = ''
-      if (format === 'png') {
-        dataUrl = await getPngElement(el, getExportDimensions(), styledBorderRadiusFormatted.value)
-      } else if (format === 'jpg') {
-        dataUrl = await getJpgElement(el, getExportDimensions(), styledBorderRadiusFormatted.value)
-      } else {
-        dataUrl = await getSvgString(el, getExportDimensions(), styledBorderRadiusFormatted.value)
-      }
-      createZipFile(zip, dataUrl, index, format)
-      numQrCodesCreated++
-    }
-
-    while (numQrCodesCreated !== dataStringsFromCsv.value.length) {
-      await sleep(100)
-    }
-
-    zip.generateAsync({ type: 'blob' }).then((content) => {
-      const link = document.createElement('a')
-      link.href = URL.createObjectURL(content)
-      link.download = `qr-codes.zip`
-      link.click()
-      isBatchExportSuccess.value = true
-    })
-  } catch (error) {
-    console.error('Error generating batch QR codes', error)
-    isBatchExportSuccess.value = false
-  } finally {
-    resetBatchExportProgress()
-  }
-}
-// #endregion
 
 //#region /* Data modal */
 const isDataModalVisible = ref(false)
@@ -881,7 +689,6 @@ const mainDivPaddingStyle = computed(() => {
         <div class="mt-4 flex flex-col items-center gap-8">
           <div class="flex flex-col items-center justify-center gap-3">
             <button
-              v-if="exportMode !== ExportMode.Batch"
               id="copy-qr-image-button"
               class="button flex w-fit max-w-full flex-row items-center gap-1"
               @click="copyQRToClipboard"
@@ -1059,52 +866,14 @@ const mainDivPaddingStyle = computed(() => {
               <div class="flex w-full flex-col flex-wrap gap-4 sm:flex-row sm:gap-x-8">
                 <!-- Data to encode area -->
                 <div class="w-full overflow-hidden sm:grow">
-                  <!-- Header row: Label + Mode Toggles + Batch Options -->
-                  <div class="mb-2 flex items-center gap-4">
+                  <!-- Data templates button (moved above input) -->
+                  <div class="mb-2 flex items-center justify-between">
                     <label for="data">{{ t('Data to encode') }}</label>
-                    <!-- Mode Toggle Buttons -->
-                    <div class="flex grow items-center gap-2">
-                      <button
-                        :class="[
-                          'secondary-button',
-                          { 'opacity-50': exportMode === ExportMode.Single } // Dim if active
-                        ]"
-                        @click="exportMode = ExportMode.Single"
-                      >
-                        {{ $t('Single export') }}
-                      </button>
-                      <button
-                        :class="[
-                          'secondary-button',
-                          { 'opacity-50': exportMode === ExportMode.Batch } // Dim if active
-                        ]"
-                        @click="exportMode = ExportMode.Batch"
-                      >
-                        {{ $t('Batch export') }}
-                      </button>
-                      <!-- Batch specific options -->
-                      <div
-                        v-if="exportMode === ExportMode.Batch"
-                        :class="[
-                          'flex grow items-center justify-end gap-2',
-                          dataStringsFromCsv.length > 0 && 'opacity-80'
-                        ]"
-                      ></div>
-                    </div>
-                  </div>
-                  <!-- Single Mode Input -->
-                  <div v-if="exportMode === ExportMode.Single" class="flex flex-col items-start">
-                    <textarea
-                      id="data"
-                      v-model="data"
-                      class="mr-2 grow text-input"
-                      :placeholder="t('data to encode e.g. a URL or a string')"
-                    ></textarea>
                     <button
                       @click="openDataModal"
                       aria-haspopup="dialog"
                       :aria-expanded="isDataModalVisible"
-                      class="secondary-button mt-2 flex items-center gap-1 self-end"
+                      class="secondary-button flex items-center gap-1"
                       :aria-label="t('Open data type generator')"
                     >
                       <span>{{ t('Data templates') }}</span>
@@ -1126,123 +895,13 @@ const mainDivPaddingStyle = computed(() => {
                       </svg>
                     </button>
                   </div>
-                  <template v-if="exportMode === ExportMode.Batch">
-                    <template v-if="!inputFileForBatchEncoding">
-                      <BatchExportFieldsGuide />
-                      <button
-                        class="!ms-0 mt-4 flex items-center justify-center rounded-lg border-2 border-dashed border-gray-300 p-1 py-4 text-center text-input"
-                        :aria-label="t('Choose a CSV file containing data to encode')"
-                        @click="fileInput?.click()"
-                        @keyup.enter="fileInput?.click()"
-                        @keyup.space="fileInput?.click()"
-                        @dragover.prevent
-                        @drop.prevent="onBatchInputFileUpload"
-                      >
-                        <div class="flex flex-col items-center">
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="48"
-                            height="48"
-                            viewBox="0 0 24 24"
-                            class="mb-2 text-gray-400"
-                          >
-                            <path
-                              fill="currentColor"
-                              d="M11 16V7.85l-2.6 2.6L7 9l5-5l5 5l-1.4 1.45l-2.6-2.6V16h-2Zm-5 4q-.825 0-1.413-.588T4 18v-3h2v3h12v-3h2v3q0 .825-.588 1.413T18 20H6Z"
-                            />
-                          </svg>
-                          <p aria-hidden="true" class="text-sm">
-                            {{ $t('Upload a CSV file') }}
-                          </p>
-                        </div>
-                        <input
-                          ref="fileInput"
-                          type="file"
-                          accept=".csv,.txt"
-                          class="hidden"
-                          @change="onBatchInputFileUpload"
-                        />
-                      </button>
-                    </template>
-                    <div v-else-if="isValidCsv" class="p-4 text-center">
-                      <div v-if="isBatchExportSuccess">
-                        <p>{{ $t('QR codes have been successfully exported.') }}</p>
-                        <button class="button mt-4" @click="inputFileForBatchEncoding = null">
-                          {{ $t('Start new batch export') }}
-                        </button>
-                      </div>
-                      <div v-else-if="currentExportedQrCodeIndex == null && !isExportingBatchQRs">
-                        <div v-if="dataStringsFromCsv.length > 0" class="mt-4">
-                          <div
-                            class="flex flex-col gap-2 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800"
-                          >
-                            <div v-if="previewRow && 'firstName' in previewRow">
-                              <VCardPreview :vCard="previewRow" />
-                            </div>
-                            <div v-else>
-                              <div class="space-y-2">
-                                <div class="flex flex-col gap-1">
-                                  <span
-                                    class="text-xs font-medium text-gray-500 dark:text-gray-400"
-                                    >{{ $t('Data:') }}</span
-                                  >
-                                  <code
-                                    class="rounded bg-white px-2 py-1 font-mono text-sm dark:bg-gray-900"
-                                  >
-                                    {{ dataStringsFromCsv[previewRowIndex] }}
-                                  </code>
-                                </div>
-                                <div v-if="fileNamesFromCsv[previewRowIndex]">
-                                  <span
-                                    class="text-xs font-medium text-gray-500 dark:text-gray-400"
-                                    >{{ $t('File name:') }}</span
-                                  >
-                                  <code
-                                    class="rounded bg-white px-2 py-1 font-mono text-sm dark:bg-gray-900"
-                                  >
-                                    {{ fileNamesFromCsv[previewRowIndex] }}
-                                  </code>
-                                </div>
-                              </div>
-                            </div>
-                            <div class="mt-2 flex items-center justify-between">
-                              <button
-                                class="rounded bg-gray-200 px-2 py-1 text-gray-700 disabled:opacity-50 dark:bg-gray-700 dark:text-gray-200 dark:disabled:opacity-60"
-                                :disabled="previewRowIndex === 0"
-                                @click="previewRowIndex--"
-                              >
-                                &lt;
-                              </button>
-                              <span class="text-xs text-gray-500 dark:text-gray-400"
-                                >{{ previewRowIndex + 1 }} / {{ dataStringsFromCsv.length }}</span
-                              >
-                              <button
-                                class="rounded bg-gray-200 px-2 py-1 text-gray-700 disabled:opacity-50 dark:bg-gray-700 dark:text-gray-200 dark:disabled:opacity-60"
-                                :disabled="previewRowIndex === dataStringsFromCsv.length - 1"
-                                @click="previewRowIndex++"
-                              >
-                                &gt;
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <div v-else-if="currentExportedQrCodeIndex != null">
-                        <p>{{ $t('Creating QR codes... This may take a while.') }}</p>
-                        <p>
-                          {{
-                            $t('{index} / {count} QR codes have been created.', {
-                              index: currentExportedQrCodeIndex + 1,
-                              count: dataStringsFromCsv.length
-                            })
-                          }}
-                        </p>
-                      </div>
-                    </div>
-                    <div v-else class="p-4 text-center text-red-500">
-                      <p>{{ $t('Invalid CSV') }}</p>
-                    </div>
-                  </template>
+                  <!-- Data input -->
+                  <textarea
+                    id="data"
+                    v-model="data"
+                    class="w-full text-input"
+                    :placeholder="t('data to encode e.g. a URL or a string')"
+                  ></textarea>
                 </div>
               </div>
             </div>
